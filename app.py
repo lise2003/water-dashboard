@@ -479,11 +479,8 @@ def show_enterprise_dashboard(province, rural_area):
     # Show dependency warning only once at the top if folium is not available
     if not FOLIUM_AVAILABLE:
         st.warning("⚠️ **Mapping Features Limited**: Folium package not installed. Some satellite mapping features will be limited.")
-        st.info("💡 **To enable full mapping capabilities**: Run the following command in your terminal:\n\n```bash\npip install folium streamlit-folium\n```")
+        st.info("💡 **To enable full mapping capabilities**: Run `pip install folium streamlit-folium` in your terminal")
     
-    # Rest of the dashboard code remains the same...
-
-
     # =============================================
     # EXECUTIVE SUMMARY - ENTERPRISE METRICS
     # =============================================
