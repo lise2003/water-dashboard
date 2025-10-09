@@ -1,3 +1,12 @@
+# 🚀 ENTERPRISE-GRADE IBM WATER INFRASTRUCTURE PLATFORM
+
+# =============================================
+# SOURCE ATTRIBUTION
+# =============================================
+# BEFORE: Source code adapted from IBM Water Infrastructure Solutions
+# AFTER: AI-Generated Enterprise Platform Enhancements
+# =============================================
+
 # app.py - ENTERPRISE IBM WATER INFRASTRUCTURE INTELLIGENCE PLATFORM
 import streamlit as st
 import pandas as pd
