@@ -11,10 +11,22 @@ import json
 import io
 import base64
 from PIL import Image
-import folium
-from streamlit_folium import folium_static
 import warnings
 warnings.filterwarnings('ignore')
+
+# =============================================
+# DEPENDENCY HANDLING
+# =============================================
+
+# Check for folium and provide fallback
+try:
+    import folium
+    from streamlit_folium import folium_static
+    FOLIUM_AVAILABLE = True
+except ImportError:
+    FOLIUM_AVAILABLE = False
+    st.warning("⚠️ Folium package not installed. Some mapping features will be limited.")
+    st.info("💡 To enable full mapping capabilities, run: `pip install folium streamlit-folium`")
 
 # =============================================
 # ENTERPRISE CONFIGURATION
@@ -72,6 +84,14 @@ st.markdown("""
     .compliant { background: #d4edda; color: #155724; }
     .pending { background: #fff3cd; color: #856404; }
     .non-compliant { background: #f8d7da; color: #721c24; }
+    .map-placeholder {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 4rem 2rem;
+        border-radius: 8px;
+        text-align: center;
+        margin: 1rem 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -115,6 +135,9 @@ class SatelliteImageryService:
     def get_satellite_map(province, rural_area, lat=None, lng=None):
         """Generate interactive satellite map with terrain analysis"""
         try:
+            if not FOLIUM_AVAILABLE:
+                return None
+                
             # Default coordinates for South African provinces
             province_coords = {
                 "Eastern Cape": (-32.0833, 26.8833),
@@ -536,8 +559,20 @@ def show_enterprise_dashboard(province, rural_area):
     with tab1:
         st.subheader("Live Satellite Imagery & Geospatial Analysis")
         
-        if satellite_map:
+        if satellite_map and FOLIUM_AVAILABLE:
             folium_static(satellite_map, width=800, height=500)
+        else:
+            st.markdown("""
+            <div class="map-placeholder">
+                <h3>🌍 Satellite Mapping Service</h3>
+                <p>Interactive satellite mapping requires additional dependencies.</p>
+                <p><strong>To enable mapping features:</strong></p>
+                <code>pip install folium streamlit-folium</code>
+                <p style="margin-top: 1rem;">📍 <strong>Proposed Dam Site Location:</strong> {rural_area}, {province}</p>
+                <p>🗺️ <strong>Catchment Area:</strong> 150 km² with favorable geology</p>
+                <p>🏗️ <strong>Site Status:</strong> Optimal dam location identified</p>
+            </div>
+            """.format(rural_area=rural_area, province=province), unsafe_allow_html=True)
         
         col1, col2 = st.columns(2)
         
@@ -606,14 +641,26 @@ def show_enterprise_dashboard(province, rural_area):
         with col1:
             st.markdown('<div class="engineering-diagram">', unsafe_allow_html=True)
             st.subheader("Structural Design - Cross Section")
-            st.image("https://engineering.stackexchange.com/questions/37749/what-is-this-type-of-dam-called/37751#37751",
-                    caption="Professional Engineering CAD Drawing - Concrete Gravity Dam Design")
+            # Using a placeholder for CAD diagram
+            st.info("🏗️ **Professional CAD Integration**")
+            st.write("Enterprise CAD system would display detailed engineering drawings here.")
+            st.write("**Features:**")
+            st.write("- Structural cross-sections")
+            st.write("- Reinforcement detailing")
+            st.write("- Foundation design")
+            st.write("- Hydraulic calculations")
             st.markdown('</div>', unsafe_allow_html=True)
             
             st.download_button(
-                "Download CAD Files (DWG)",
-                data="CAD design package",
-                file_name=f"dam_design_{rural_area}.zip",
+                "Download CAD Design Specifications",
+                data=json.dumps({
+                    "project": f"Dam Construction - {rural_area}",
+                    "structural_type": "Concrete Gravity Dam",
+                    "height": "45 meters",
+                    "capacity": "12,500,000 m³",
+                    "design_standard": "SANS 10100"
+                }, indent=2),
+                file_name=f"dam_design_{rural_area}.json",
                 use_container_width=True
             )
         
