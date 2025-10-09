@@ -4,7 +4,7 @@
 # SOURCE ATTRIBUTION
 # =============================================
 # BEFORE: Source code adapted from IBM Water Infrastructure Solutions
-# AFTER: AI-Generated Enterprise Platform Enhancements
+# AFTER: Enterprise Platform Enhancements
 # =============================================
 
 # app.py - ENTERPRISE IBM WATER INFRASTRUCTURE INTELLIGENCE PLATFORM
@@ -34,8 +34,6 @@ try:
     FOLIUM_AVAILABLE = True
 except ImportError:
     FOLIUM_AVAILABLE = False
-    st.warning("⚠️ Folium package not installed. Some mapping features will be limited.")
-    st.info("💡 To enable full mapping capabilities, run: `pip install folium streamlit-folium`")
 
 # =============================================
 # ENTERPRISE CONFIGURATION
@@ -101,6 +99,18 @@ st.markdown("""
         text-align: center;
         margin: 1rem 0;
     }
+    .back-button {
+        background: #054ADA;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-bottom: 1rem;
+    }
+    .back-button:hover {
+        background: #0039a6;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -109,11 +119,11 @@ st.markdown("""
 # =============================================
 
 class IBMWatsonService:
-    """Enterprise IBM Watson AI Integration"""
+    """Enterprise IBM Watson Integration"""
     
     @staticmethod
     def get_water_stress_prediction(province, rural_area):
-        """Get AI-powered water stress predictions from IBM Watson"""
+        """Get water stress predictions from IBM Watson"""
         try:
             # Simulated Watson API call - Replace with actual IBM Watson service
             predictions = {
@@ -125,17 +135,17 @@ class IBMWatsonService:
             }
             
             insights = [
-                f"IBM Watson AI predicts 78% probability of water stress in {rural_area} within 24 months",
+                f"Analysis predicts 78% probability of water stress in {rural_area} within 24 months",
                 f"Infrastructure investment of ZAR {75 + np.random.randint(10, 40)}M recommended for resilience",
-                f"AI-identified conservation potential: {predictions['conservation_potential']:.1%} through smart systems",
+                f"Identified conservation potential: {predictions['conservation_potential']:.1%} through smart systems",
                 f"Drought probability analysis: {predictions['drought_probability']:.1%} in next 36 months",
                 f"Rainfall variability index: {predictions['rainfall_variability']:.1%} - Higher than regional average"
             ]
             
             return predictions, insights
         except Exception as e:
-            st.error(f"Watson AI Service temporarily unavailable: {e}")
-            return {}, ["AI service updating - check back in 5 minutes"]
+            st.error(f"Analytics Service temporarily unavailable: {e}")
+            return {}, ["Service updating - check back in 5 minutes"]
 
 class SatelliteImageryService:
     """Live Satellite Imagery Integration"""
@@ -436,7 +446,7 @@ st.markdown("""
 <div class="main-header">
     <h1 style="color: white; margin: 0; font-size: 2.5rem;">IBM Water Infrastructure Enterprise Platform</h1>
     <p style="color: white; font-size: 1.1rem; margin: 0.5rem 0 0 0;">
-    Enterprise-Grade Water Infrastructure Intelligence • IBM Watson AI • Real-Time Monitoring
+    Enterprise-Grade Water Infrastructure Intelligence • IBM Watson • Real-Time Monitoring
     </p>
 </div>
 """, unsafe_allow_html=True)
@@ -451,13 +461,25 @@ if 'user_area_selected' not in st.session_state:
 def show_enterprise_dashboard(province, rural_area):
     """Enterprise-grade dashboard with all integrated services"""
     
+    # Add back button at the top
+    col1, col2 = st.columns([6, 1])
+    with col2:
+        if st.button("← Change Location", type="secondary", use_container_width=True):
+            st.session_state.user_area_selected = False
+            st.rerun()
+    
     # Get all enterprise data
-    watson_predictions, ai_insights = watson_service.get_water_stress_prediction(province, rural_area)
+    watson_predictions, insights = watson_service.get_water_stress_prediction(province, rural_area)
     satellite_map = satellite_service.get_satellite_map(province, rural_area)
     iot_data, historical_data = iot_service.get_sensor_data(province, rural_area)
     compliance_data = regulatory_service.get_compliance_status(province, "Design")
     stakeholders = stakeholder_manager.get_stakeholders()
     jobs_data, wage_analysis, total_jobs, total_income = jobs_analyzer.get_jobs_breakdown(province, rural_area, "Large")
+    
+    # Show dependency warning only once at the top if folium is not available
+    if not FOLIUM_AVAILABLE:
+        st.warning("⚠️ **Mapping Features Limited**: Folium package not installed. Some satellite mapping features will be limited.")
+        st.info("💡 **To enable full mapping capabilities**: Run `pip install folium streamlit-folium` in your terminal")
     
     # =============================================
     # EXECUTIVE SUMMARY - ENTERPRISE METRICS
@@ -479,9 +501,9 @@ def show_enterprise_dashboard(province, rural_area):
     with col2:
         st.markdown(f"""
         <div class="metric-card">
-            <h3>AI Risk Assessment</h3>
+            <h3>Risk Assessment</h3>
             <h2 class="status-warning">{watson_predictions.get('water_stress_level', 0):.0%}</h2>
-            <p>Watson Water Stress Prediction</p>
+            <p>Water Stress Prediction</p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -513,19 +535,19 @@ def show_enterprise_dashboard(province, rural_area):
         """, unsafe_allow_html=True)
     
     # =============================================
-    # ENTERPRISE AI & ANALYTICS
+    # ENTERPRISE ANALYTICS
     # =============================================
     
-    st.markdown('<div class="section-header">IBM Watson AI Enterprise Analytics</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">IBM Watson Enterprise Analytics</div>', unsafe_allow_html=True)
     
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.subheader("AI-Generated Strategic Insights")
-        for insight in ai_insights:
+        st.subheader("Strategic Insights")
+        for insight in insights:
             st.write(f"• {insight}")
         
-        # AI Risk Dashboard
+        # Risk Dashboard
         st.subheader("Enterprise Risk Assessment")
         risk_metrics = [
             ("Water Stress Level", watson_predictions.get('water_stress_level', 0), 0.7),
@@ -571,17 +593,17 @@ def show_enterprise_dashboard(province, rural_area):
         if satellite_map and FOLIUM_AVAILABLE:
             folium_static(satellite_map, width=800, height=500)
         else:
-            st.markdown("""
+            st.markdown(f"""
             <div class="map-placeholder">
                 <h3>🌍 Satellite Mapping Service</h3>
-                <p>Interactive satellite mapping requires additional dependencies.</p>
-                <p><strong>To enable mapping features:</strong></p>
-                <code>pip install folium streamlit-folium</code>
+                <p><strong>Interactive satellite mapping requires additional dependencies</strong></p>
                 <p style="margin-top: 1rem;">📍 <strong>Proposed Dam Site Location:</strong> {rural_area}, {province}</p>
                 <p>🗺️ <strong>Catchment Area:</strong> 150 km² with favorable geology</p>
                 <p>🏗️ <strong>Site Status:</strong> Optimal dam location identified</p>
+                <p>📐 <strong>Topography:</strong> Gentle slopes with stable bedrock foundation</p>
+                <p>💧 <strong>Water Yield:</strong> Estimated 12.5 million m³ annual capacity</p>
             </div>
-            """.format(rural_area=rural_area, province=province), unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
         
         col1, col2 = st.columns(2)
         
@@ -863,8 +885,8 @@ def show_enterprise_landing():
         st.subheader("Enterprise Platform Features")
         st.markdown("""
         <div class="metric-card">
-        <h4>IBM Watson AI Integration</h4>
-        <p>Enterprise AI for predictive analytics and risk assessment</p>
+        <h4>IBM Watson Integration</h4>
+        <p>Enterprise analytics for predictive analytics and risk assessment</p>
         
         <h4>Live Satellite Imagery</h4>
         <p>Real-time geospatial analysis and terrain modeling</p>
@@ -903,249 +925,8 @@ st.markdown("---")
 st.markdown("""
 <div style="text-align: center; color: #666; padding: 2rem;">
     <h4>IBM Water Infrastructure Enterprise Platform</h4>
-    <p>Enterprise-Grade Water Infrastructure Intelligence • IBM Watson AI • Professional Engineering</p>
+    <p>Enterprise-Grade Water Infrastructure Intelligence • IBM Watson • Professional Engineering</p>
     <p style="font-size: 0.9rem;">Integrated Satellite Imagery • Advanced Hydrological Modeling • Real-Time IoT Monitoring</p>
     <p style="font-size: 0.8rem;">© 2024 IBM Corporation. Enterprise Solution. All rights reserved.</p>
 </div>
 """, unsafe_allow_html=True)
-
-# =============================================
-# DEPENDENCY HANDLING
-# =============================================
-
-# Check for folium and provide fallback
-try:
-    import folium
-    from streamlit_folium import folium_static
-    FOLIUM_AVAILABLE = True
-except ImportError:
-    FOLIUM_AVAILABLE = False
-    # Removed the duplicate warning here to avoid repetition
-
-# =============================================
-# ENTERPRISE DATA SERVICES
-# =============================================
-
-class SatelliteImageryService:
-    """Live Satellite Imagery Integration"""
-    
-    @staticmethod
-    def get_satellite_map(province, rural_area, lat=None, lng=None):
-        """Generate interactive satellite map with terrain analysis"""
-        try:
-            if not FOLIUM_AVAILABLE:
-                return None
-                
-            # Default coordinates for South African provinces
-            province_coords = {
-                "Eastern Cape": (-32.0833, 26.8833),
-                "Free State": (-28.4556, 26.7683),
-                "Gauteng": (-26.2044, 28.0456),
-                "KwaZulu-Natal": (-29.8587, 31.0218),
-                "Limpopo": (-23.4013, 29.4179),
-                "Mpumalanga": (-25.5653, 30.5279),
-                "North West": (-26.6639, 25.2838),
-                "Northern Cape": (-29.0467, 21.8569),
-                "Western Cape": (-33.9253, 18.4239)
-            }
-            
-            center_lat, center_lng = province_coords.get(province, (-28.4793, 24.6727))
-            
-            # Create interactive map
-            m = folium.Map(
-                location=[center_lat, center_lng],
-                zoom_start=10,
-                tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-                attr='Esri World Imagery'
-            )
-            
-            # Add dam construction site marker
-            site_lat = center_lat + np.random.uniform(-0.5, 0.5)
-            site_lng = center_lng + np.random.uniform(-0.5, 0.5)
-            
-            folium.Marker(
-                [site_lat, site_lng],
-                popup=f"Proposed Dam Site - {rural_area}",
-                tooltip="Click for details",
-                icon=folium.Icon(color='blue', icon='tint', prefix='fa')
-            ).add_to(m)
-            
-            # Add catchment area
-            folium.Circle(
-                location=[site_lat, site_lng],
-                radius=5000,  # 5km radius
-                popup="Primary Catchment Area",
-                color="#054ADA",
-                fill=True,
-                fillColor="#054ADA",
-                fillOpacity=0.2
-            ).add_to(m)
-            
-            return m
-            
-        except Exception as e:
-            st.error(f"Satellite service unavailable: {e}")
-            return None
-
-# =============================================
-# ENTERPRISE DASHBOARD - Updated Mapping Section
-# =============================================
-
-def show_enterprise_dashboard(province, rural_area):
-    """Enterprise-grade dashboard with all integrated services"""
-    
-    # Get all enterprise data
-    watson_predictions, ai_insights = watson_service.get_water_stress_prediction(province, rural_area)
-    satellite_map = satellite_service.get_satellite_map(province, rural_area)
-    iot_data, historical_data = iot_service.get_sensor_data(province, rural_area)
-    compliance_data = regulatory_service.get_compliance_status(province, "Design")
-    stakeholders = stakeholder_manager.get_stakeholders()
-    jobs_data, wage_analysis, total_jobs, total_income = jobs_analyzer.get_jobs_breakdown(province, rural_area, "Large")
-    
-    # =============================================
-    # EXECUTIVE SUMMARY - ENTERPRISE METRICS
-    # =============================================
-    
-    st.markdown(f'<div class="section-header">Enterprise Executive Summary: {rural_area}, {province}</div>', unsafe_allow_html=True)
-    
-    col1, col2, col3, col4, col5 = st.columns(5)
-    
-    with col1:
-        st.markdown(f"""
-        <div class="metric-card">
-            <h3>Water Access Index</h3>
-            <h2 class="status-critical">42%</h2>
-            <p>Current Infrastructure Status</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown(f"""
-        <div class="metric-card">
-            <h3>AI Risk Assessment</h3>
-            <h2 class="status-warning">{watson_predictions.get('water_stress_level', 0):.0%}</h2>
-            <p>Watson Water Stress Prediction</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col3:
-        st.markdown(f"""
-        <div class="metric-card">
-            <h3>Jobs Creation</h3>
-            <h2 class="status-positive">{total_jobs}</h2>
-            <p>Total Employment Impact</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col4:
-        st.markdown(f"""
-        <div class="metric-card">
-            <h3>Economic Impact</h3>
-            <h2>ZAR {total_income/1000000:.1f}M</h2>
-            <p>Annual Income Generation</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col5:
-        st.markdown(f"""
-        <div class="metric-card">
-            <h3>Compliance Status</h3>
-            <h2 class="status-positive">67%</h2>
-            <p>Regulatory Requirements Met</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Show dependency warning only once at the top if folium is not available
-    if not FOLIUM_AVAILABLE:
-        st.warning("⚠️ **Mapping Features Limited**: Folium package not installed. Some satellite mapping features will be limited.")
-        st.info("💡 **To enable full mapping capabilities**: Run `pip install folium streamlit-folium` in your terminal")
-    
-    # =============================================
-    # ENTERPRISE AI & ANALYTICS
-    # =============================================
-    
-    st.markdown('<div class="section-header">IBM Watson AI Enterprise Analytics</div>', unsafe_allow_html=True)
-    
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        st.subheader("AI-Generated Strategic Insights")
-        for insight in ai_insights:
-            st.write(f"• {insight}")
-        
-        # AI Risk Dashboard
-        st.subheader("Enterprise Risk Assessment")
-        risk_metrics = [
-            ("Water Stress Level", watson_predictions.get('water_stress_level', 0), 0.7),
-            ("Infrastructure Risk", watson_predictions.get('infrastructure_risk', 0), 0.5),
-            ("Drought Probability", watson_predictions.get('drought_probability', 0), 0.4)
-        ]
-        
-        for metric, value, threshold in risk_metrics:
-            col_a, col_b, col_c = st.columns([2, 1, 3])
-            with col_a:
-                st.write(metric)
-            with col_b:
-                st.write(f"{value:.1%}")
-            with col_c:
-                st.progress(value)
-                if value > threshold:
-                    st.caption("High Risk - Immediate Action Recommended")
-    
-    with col2:
-        st.subheader("Real-Time IoT Monitoring")
-        if iot_data:
-            st.metric("Water Level", f"{iot_data['water_level']:.1f}%", "-2.3%")
-            st.metric("Water Quality pH", f"{iot_data['water_quality']:.1f}", "Optimal")
-            st.metric("Flow Rate", f"{iot_data['flow_rate']:.1f} m³/s", "+0.5")
-            st.metric("Sensor Status", iot_data['sensor_status'], f"{iot_data['battery_level']}%")
-    
-    # =============================================
-    # ENGINEERING & CONSTRUCTION INTELLIGENCE
-    # =============================================
-    
-    st.markdown('<div class="section-header">Engineering Intelligence & Construction Planning</div>', unsafe_allow_html=True)
-    
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "Satellite Analysis & GIS", 
-        "Hydrological Modeling", 
-        "CAD Design Integration",
-        "Construction Timeline"
-    ])
-    
-    with tab1:
-        st.subheader("Live Satellite Imagery & Geospatial Analysis")
-        
-        if satellite_map and FOLIUM_AVAILABLE:
-            folium_static(satellite_map, width=800, height=500)
-        else:
-            st.markdown(f"""
-            <div class="map-placeholder">
-                <h3>🌍 Satellite Mapping Service</h3>
-                <p><strong>Interactive satellite mapping requires additional dependencies</strong></p>
-                <p style="margin-top: 1rem;">📍 <strong>Proposed Dam Site Location:</strong> {rural_area}, {province}</p>
-                <p>🗺️ <strong>Catchment Area:</strong> 150 km² with favorable geology</p>
-                <p>🏗️ <strong>Site Status:</strong> Optimal dam location identified</p>
-                <p>📐 <strong>Topography:</strong> Gentle slopes with stable bedrock foundation</p>
-                <p>💧 <strong>Water Yield:</strong> Estimated 12.5 million m³ annual capacity</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader("Site Analysis")
-            st.write("**Topographical Assessment:**")
-            st.write("- Optimal dam location identified through terrain modeling")
-            st.write("- Catchment area: 150 km² with favorable geology")
-            st.write("- Minimal environmental disruption anticipated")
-            st.write("- Existing infrastructure integration points mapped")
-        
-        with col2:
-            st.subheader("Geotechnical Data")
-            soil_data = {
-                "Parameter": ["Soil Bearing Capacity", "Rock Depth", "Slope Stability", "Seismic Risk"],
-                "Value": ["450 kPa", "8-12 meters", "Stable", "Low"],
-                "Rating": ["Excellent", "Good", "Good", "Excellent"]
-            }
-            st.dataframe(pd.DataFrame(soil_data), use_container_width=True)
