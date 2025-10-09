@@ -1,91 +1,317 @@
-# app.py - PROFESSIONAL IBM WATER INFRASTRUCTURE PLANNER
+# app.py - PROFESSIONAL IBM WATER INFRASTRUCTURE INTELLIGENCE PLATFORM
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-import json
-import plotly.express as px
 import plotly.graph_objects as go
+import plotly.express as px
 from datetime import datetime, timedelta
+import requests
+import json
 
 # =============================================
-# 🎨 PROFESSIONAL STYLING & IBM BRANDING
+# PROFESSIONAL CONFIGURATION
 # =============================================
 
 st.set_page_config(
-    page_title="IBM Water Infrastructure Planner",
+    page_title="IBM Water Infrastructure Intelligence",
     page_icon="💧",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for professional IBM-style interface
+# Professional CSS styling
 st.markdown("""
 <style>
     .main-header {
         background: linear-gradient(135deg, #054ADA 0%, #0062FF 100%);
         color: white;
         padding: 2.5rem;
-        border-radius: 15px;
+        border-radius: 8px;
         margin-bottom: 2rem;
         text-align: center;
-        box-shadow: 0 4px 12px rgba(5, 74, 218, 0.3);
     }
     .metric-card {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        background: #f8f9fa;
         padding: 1.5rem;
-        border-radius: 12px;
-        border-left: 5px solid #054ADA;
+        border-radius: 8px;
+        border-left: 4px solid #054ADA;
         margin: 0.5rem 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .section-header {
-        border-bottom: 3px solid #054ADA;
-        padding-bottom: 0.8rem;
-        margin-top: 2.5rem;
+        border-bottom: 2px solid #054ADA;
+        padding-bottom: 0.5rem;
+        margin: 2rem 0 1rem 0;
         color: #054ADA;
         font-weight: 600;
     }
-    .community-badge {
-        background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-        color: #000;
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-weight: bold;
-        display: inline-block;
-        margin: 0.2rem;
-    }
     .engineering-diagram {
-        border: 2px solid #054ADA;
-        border-radius: 10px;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
         padding: 1rem;
         background: white;
     }
-    .impact-positive {
+    .status-positive {
         color: #28a745;
-        font-weight: bold;
+        font-weight: 600;
     }
-    .impact-negative {
+    .status-warning {
+        color: #ffc107;
+        font-weight: 600;
+    }
+    .status-critical {
         color: #dc3545;
-        font-weight: bold;
+        font-weight: 600;
+    }
+    .language-selector {
+        position: absolute;
+        top: 10px;
+        right: 10px;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # =============================================
-# 🏢 IBM PROFESSIONAL HEADER
+# MULTI-LANGUAGE SUPPORT
 # =============================================
 
-st.markdown("""
+translations = {
+    "en": {
+        "title": "IBM Water Infrastructure Intelligence Platform",
+        "subtitle": "Powered by IBM Z Cloud • AI-Powered Analytics • Real-Time Monitoring",
+        "start_journey": "Start Your Infrastructure Journey",
+        "select_province": "Select Province",
+        "select_area": "Select Rural Area",
+        "launch_analysis": "Launch Infrastructure Analysis",
+        "executive_summary": "Executive Summary",
+        "current_water_access": "Current Water Access",
+        "infrastructure_need": "Infrastructure Need",
+        "population_impact": "Population Impact",
+        "projected_roi": "Projected ROI",
+        "infrastructure_transformation": "Infrastructure Transformation",
+        "current_situation": "Current Situation",
+        "proposed_solution": "Proposed Solution",
+        "engineering_design": "Engineering Design & Technical Analysis",
+        "structural_design": "Structural Design",
+        "hydrological_analysis": "Hydrological Analysis",
+        "economic_impact": "Economic Impact",
+        "environmental_assessment": "Environmental Assessment",
+        "community_challenge": "Community Challenge: Water Conservation",
+        "real_time_analytics": "IBM AI-Powered Analytics",
+        "sustainability_plan": "Personalized Sustainability Plan",
+        "household_actions": "Household Actions",
+        "community_projects": "Community Projects",
+        "business_opportunities": "Business Opportunities"
+    },
+    "af": {
+        "title": "IBM Water Infrastruktuur Intelligensie Platform",
+        "subtitle": "Aangedryf deur IBM Z Wolk • AI-Aangedrewe Ontleding • Intydse Monitering",
+        "start_journey": "Begin Jou Infrastruktuur Reis",
+        "select_province": "Kies Provinsie",
+        "select_area": "Kies Landelike Area",
+        "launch_analysis": "Lanseer Infrastruktuur Ontleding",
+        "executive_summary": "Uitvoerende Opsomming",
+        "current_water_access": "Huidige Water Toegang",
+        "infrastructure_need": "Infrastruktuur Behoefte",
+        "population_impact": "Bevolkings Impak",
+        "projected_roi": "Projekteerde ROI",
+        "infrastructure_transformation": "Infrastruktuur Transformasie",
+        "current_situation": "Huidige Situasie",
+        "proposed_solution": "Voorgestelde Oplossing",
+        "engineering_design": "Ingenieursontwerp & Tegniese Analise",
+        "structural_design": "Strukturele Ontwerp",
+        "hydrological_analysis": "Hidrologiese Analise",
+        "economic_impact": "Ekonomiese Impak",
+        "environmental_assessment": "Omgewings Assessering",
+        "community_challenge": "Gemeenskap Uitdaging: Water Bewaring",
+        "real_time_analytics": "IBM AI-Aangedrewe Ontleding",
+        "sustainability_plan": "Gepersonaliseerde Volhoubaarheidsplan",
+        "household_actions": "Huishoudelike Aksies",
+        "community_projects": "Gemeenskapsprojekte",
+        "business_opportunities": "Besigheidsgeleenthede"
+    },
+    "zu": {
+        "title": "I-IBM Water Infrastructure Intelligence Platform",
+        "subtitle": "I-Powered nge-IBM Z Cloud • I-AI-Powered Analytics • Ukubhekwa Kwangoko",
+        "start_journey": "Qala Uhambo Lwakho Lwezinsiza",
+        "select_province": "Khetha Isifundazwe",
+        "select_area": "Khetha Indawo Yasemakhaya",
+        "launch_analysis": "Lansela Ukuhlaziywa Kwezinsiza",
+        "executive_summary": "Isifinyezo Sokuphatha",
+        "current_water_access": "Ukufinyelela Kwamanje Kwamanzi",
+        "infrastructure_need": "Isidingo Sezinsiza",
+        "population_impact": "Umthelela Wenani Labantu",
+        "projected_roi": "I-ROI Eqanjiwe",
+        "infrastructure_transformation": "Uguqulo Lwezinsiza",
+        "current_situation": "Isimo Samanje",
+        "proposed_solution": "Isixazululo Esihlongozwayo",
+        "engineering_design": "Idizayni Yobunjiniyela Nokuhlaziywa Kobuchwepheshe",
+        "structural_design": "Idizayni Yesakhiwo",
+        "hydrological_analysis": "Ukuhlaziywa Kwe-Hydrological",
+        "economic_impact": "Umthelela Wezomnotho",
+        "environmental_assessment": "Ukuhlolwa Kwemvelo",
+        "community_challenge": "Inselelo Yomphakathi: Ukonga Amanzi",
+        "real_time_analytics": "I-IBM AI-Powered Analytics",
+        "sustainability_plan": "I-Sustainability Plan Egxile Kumuntu",
+        "household_actions": "Izenzo Zasemakhaya",
+        "community_projects": "Amaphrojekthi Omphakathi",
+        "business_opportunities": "Amathuba Ebhizinisi"
+    }
+}
+
+# Language selector
+col1, col2, col3 = st.columns([3, 3, 1])
+with col3:
+    selected_language = st.selectbox("", ["en", "af", "zu"], index=0, label_visibility="collapsed")
+    
+t = translations[selected_language]
+
+# =============================================
+# PROFESSIONAL HEADER
+# =============================================
+
+st.markdown(f"""
 <div class="main-header">
-    <h1 style="color: white; margin: 0; font-size: 2.8rem;">💧 IBM Water Infrastructure Intelligence Platform</h1>
-    <p style="color: white; font-size: 1.2rem; margin: 0.5rem 0 0 0;">Powered by IBM Z Cloud • AI-Powered Analytics • Real-Time Monitoring</p>
-    <p style="color: #E3F2FD; font-size: 1rem; margin: 0.5rem 0 0 0;">Transforming Complex Data into Community Action</p>
+    <h1 style="color: white; margin: 0; font-size: 2.5rem;">{t['title']}</h1>
+    <p style="color: white; font-size: 1.1rem; margin: 0.5rem 0 0 0;">{t['subtitle']}</p>
 </div>
 """, unsafe_allow_html=True)
 
 # =============================================
-# 🔧 DATA PROCESSING FUNCTIONS
+# ENGINEERING VISUALS AND DIAGRAMS
+# =============================================
+
+def create_3d_dam_model():
+    """Create professional 3D dam visualization"""
+    # Dam structure coordinates
+    x = np.linspace(-100, 100, 50)
+    y = np.linspace(-50, 50, 50)
+    X, Y = np.meshgrid(x, y)
+    
+    # Dam parabolic shape
+    Z = 0.01 * (X**2) + 10
+    
+    fig = go.Figure(data=[go.Surface(z=Z, x=X, y=Y, colorscale='Blues')])
+    
+    fig.update_layout(
+        title='3D Dam Structure - Concrete Gravity Design',
+        scene=dict(
+            xaxis_title='Length (m)',
+            yaxis_title='Width (m)',
+            zaxis_title='Height (m)',
+            camera=dict(eye=dict(x=1.5, y=1.5, z=1)),
+            aspectmode='manual',
+            aspectratio=dict(x=2, y=1, z=0.5)
+        ),
+        height=500,
+        margin=dict(l=0, r=0, b=0, t=40)
+    )
+    return fig
+
+def create_engineering_diagrams():
+    """Create professional engineering diagrams"""
+    # Cross-section diagram
+    fig_cross = go.Figure()
+    
+    # Dam cross-section
+    x_vals = [0, 20, 40, 60, 80, 100, 80, 60, 40, 20, 0]
+    y_vals = [0, 15, 25, 32, 38, 45, 38, 32, 25, 15, 0]
+    
+    fig_cross.add_trace(go.Scatter(
+        x=x_vals, y=y_vals,
+        fill='toself',
+        fillcolor='rgba(100, 149, 237, 0.6)',
+        line=dict(color='royalblue', width=2),
+        name='Dam Structure'
+    ))
+    
+    fig_cross.update_layout(
+        title='Dam Cross-Section - Engineering Design',
+        xaxis_title='Distance (m)',
+        yaxis_title='Height (m)',
+        showlegend=False,
+        height=400
+    )
+    
+    return fig_cross
+
+def create_satellite_overlay(province, rural_area):
+    """Create satellite imagery visualization"""
+    # Simulated satellite data with terrain
+    x = np.linspace(-2, 2, 50)
+    y = np.linspace(-2, 2, 50)
+    X, Y = np.meshgrid(x, y)
+    Z = np.sin(np.sqrt(X**2 + Y**2))
+    
+    fig = go.Figure(data=[go.Surface(z=Z, colorscale='Earth')])
+    
+    fig.update_layout(
+        title=f'Satellite Terrain Analysis - {rural_area}, {province}',
+        scene=dict(
+            xaxis_title='Longitude',
+            yaxis_title='Latitude', 
+            zaxis_title='Elevation',
+            camera=dict(eye=dict(x=1.5, y=1.5, z=1))
+        ),
+        height=500
+    )
+    return fig
+
+# =============================================
+# CONSTRUCTION TIMELINE
+# =============================================
+
+def create_construction_timeline():
+    """Create professional construction timeline"""
+    phases = [
+        {"Phase": "Site Preparation", "Start": "2024-01", "Finish": "2024-03", "Progress": 100},
+        {"Phase": "Foundation Work", "Start": "2024-04", "Finish": "2024-08", "Progress": 75},
+        {"Phase": "Dam Construction", "Start": "2024-09", "Finish": "2025-06", "Progress": 25},
+        {"Phase": "Testing & Commissioning", "Start": "2025-07", "Finish": "2025-12", "Progress": 0}
+    ]
+    
+    fig = px.timeline(
+        phases, 
+        x_start="Start", 
+        x_end="Finish", 
+        y="Phase",
+        color="Progress",
+        color_continuous_scale=["#dc3545", "#ffc107", "#28a745"],
+        title="Construction Timeline - Project Progress"
+    )
+    
+    fig.update_layout(height=300)
+    fig.update_yaxes(autorange="reversed")
+    
+    return fig, phases
+
+# =============================================
+# IBM WATSON AI PREDICTIONS
+# =============================================
+
+def get_ai_predictions(province, rural_area):
+    """Simulate IBM Watson AI predictions"""
+    # In production, this would connect to IBM Watson services
+    predictions = {
+        "water_stress_level": np.random.uniform(0.6, 0.9),
+        "infrastructure_risk": np.random.uniform(0.3, 0.7),
+        "conservation_potential": np.random.uniform(0.4, 0.8),
+        "growth_projection": np.random.uniform(1.1, 1.3)
+    }
+    
+    # AI-generated insights
+    insights = [
+        f"High water stress predicted for {rural_area} within 18 months",
+        f"Infrastructure investment of ZAR {np.random.randint(50, 100)}M recommended",
+        f"Potential water savings: {np.random.randint(20, 40)}% through efficiency measures",
+        f"Economic growth projection: {predictions['growth_projection']:.1f}x current rates"
+    ]
+    
+    return predictions, insights
+
+# =============================================
+# DATA PROCESSING FUNCTIONS
 # =============================================
 
 def make_arrow_compatible(df):
@@ -114,7 +340,7 @@ def load_data():
         return None
 
 # =============================================
-# 🎯 USER INPUT SECTION - LANDING PAGE
+# USER INTERFACE - LANDING PAGE
 # =============================================
 
 if 'user_area_selected' not in st.session_state:
@@ -125,14 +351,14 @@ if 'selected_rural_area' not in st.session_state:
     st.session_state.selected_rural_area = None
 
 def show_area_selection():
-    st.markdown('<div class="section-header">🎯 Start Your Infrastructure Journey</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="section-header">{t["start_journey"]}</div>', unsafe_allow_html=True)
     
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        st.subheader("📍 Select Your Location")
+        st.subheader("Location Selection")
         province = st.selectbox(
-            "**Province:**",
+            f"**{t['select_province']}:**",
             ["Eastern Cape", "Free State", "Gauteng", "KwaZulu-Natal", 
              "Limpopo", "Mpumalanga", "North West", "Northern Cape", "Western Cape"],
             key="province_select"
@@ -151,12 +377,12 @@ def show_area_selection():
         }
         
         rural_area = st.selectbox(
-            "**Rural Area:**",
+            f"**{t['select_area']}:**",
             rural_areas.get(province, ["Select province first"]),
             key="rural_select"
         )
         
-        if st.button("🚀 Launch Infrastructure Analysis", type="primary", use_container_width=True):
+        if st.button(f"{t['launch_analysis']}", type="primary", use_container_width=True):
             if province and rural_area:
                 st.session_state.user_area_selected = True
                 st.session_state.selected_province = province
@@ -164,195 +390,209 @@ def show_area_selection():
                 st.rerun()
     
     with col2:
-        st.subheader("ℹ️ How This Works")
+        st.subheader("Platform Overview")
         st.markdown("""
         <div class="metric-card">
-        <h4>🔍 Data-Driven Planning</h4>
-        <p>IBM's AI analyzes water access, infrastructure needs, and environmental factors to create optimal solutions.</p>
+        <h4>Data-Driven Infrastructure Planning</h4>
+        <p>Advanced analytics and AI-powered insights for optimal water infrastructure development.</p>
         
-        <h4>🏗️ Engineering Excellence</h4>
-        <p>Professional dam designs and construction plans tailored to your local geography.</p>
+        <h4>Professional Engineering Design</h4>
+        <p>Comprehensive dam designs and construction methodologies based on international standards.</p>
         
-        <h4>👥 Community Empowerment</h4>
-        <p>Gamified challenges and real-time monitoring to engage your community.</p>
+        <h4>Community Impact Analysis</h4>
+        <p>Detailed assessment of social, economic, and environmental impacts.</p>
         
-        <h4>📊 Predictive Analytics</h4>
-        <p>AI-powered predictions to prevent water crises before they happen.</p>
+        <h4>IBM AI Integration</h4>
+        <p>Watson AI provides predictive analytics and optimization recommendations.</p>
         </div>
         """, unsafe_allow_html=True)
 
 # =============================================
-# 🏗️ MAIN DASHBOARD - AFTER USER SELECTION
+# MAIN DASHBOARD
 # =============================================
 
 def show_main_dashboard(province, rural_area):
     data = load_data()
     
+    # IBM Watson AI Predictions
+    predictions, ai_insights = get_ai_predictions(province, rural_area)
+    
     # =============================================
-    # 📊 EXECUTIVE SUMMARY & REAL-TIME METRICS
+    # EXECUTIVE SUMMARY
     # =============================================
     
-    st.markdown(f'<div class="section-header">📊 Executive Summary: {rural_area}, {province}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="section-header">{t["executive_summary"]}: {rural_area}, {province}</div>', unsafe_allow_html=True)
     
-    # Real-time metrics
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.markdown("""
+        st.markdown(f"""
         <div class="metric-card">
-            <h3>💧 Current Water Access</h3>
+            <h3>{t['current_water_access']}</h3>
             <h2>42%</h2>
-            <p style="color: #dc3545;">▼ 8% below provincial average</p>
+            <p class="status-critical">8% below provincial average</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col2:
-        st.markdown("""
+        st.markdown(f"""
         <div class="metric-card">
-            <h3>🚨 Infrastructure Need</h3>
+            <h3>{t['infrastructure_need']}</h3>
             <h2>HIGH</h2>
-            <p style="color: #28a745;">🔼 Priority investment area</p>
+            <p class="status-warning">Priority investment area</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col3:
-        st.markdown("""
+        st.markdown(f"""
         <div class="metric-card">
-            <h3>👥 Population Impact</h3>
+            <h3>{t['population_impact']}</h3>
             <h2>3,250</h2>
             <p>Households to benefit</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col4:
-        st.markdown("""
+        st.markdown(f"""
         <div class="metric-card">
-            <h3>📈 Projected ROI</h3>
+            <h3>{t['projected_roi']}</h3>
             <h2>287%</h2>
             <p>5-year return on investment</p>
         </div>
         """, unsafe_allow_html=True)
     
     # =============================================
-    # 🏗️ ENGINEERING VISUALIZATIONS
+    # IBM WATSON AI INSIGHTS
     # =============================================
     
-    st.markdown(f'<div class="section-header">🏗️ Infrastructure Transformation: {rural_area}</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">IBM Watson AI Predictive Analytics</div>', unsafe_allow_html=True)
     
-    st.subheader("🎯 Before & After Analysis")
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.subheader("AI-Generated Insights")
+        for insight in ai_insights:
+            st.write(f"• {insight}")
+    
+    with col2:
+        st.subheader("Risk Assessment")
+        st.metric("Water Stress Level", f"{predictions['water_stress_level']:.0%}", "High")
+        st.metric("Infrastructure Risk", f"{predictions['infrastructure_risk']:.0%}", "Medium")
+        st.metric("Conservation Potential", f"{predictions['conservation_potential']:.0%}", "Significant")
+    
+    # =============================================
+    # ENGINEERING VISUALIZATIONS
+    # =============================================
+    
+    st.markdown(f'<div class="section-header">{t["infrastructure_transformation"]}: {rural_area}</div>', unsafe_allow_html=True)
+    
+    st.subheader("Site Analysis and Design")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("### 🟤 Current Situation")
+        st.markdown(f"### {t['current_situation']}")
         st.markdown('<div class="engineering-diagram">', unsafe_allow_html=True)
-        st.image("https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop", 
-                 caption=f"Current water infrastructure in {rural_area}")
+        st.image("https://engineering.stackexchange.com/questions/37749/what-is-this-type-of-dam-called/37751#37751", 
+                 caption="Current water infrastructure assessment")
         st.markdown('</div>', unsafe_allow_html=True)
         
         st.markdown(f"""
-        **Current Challenges in {rural_area}:**
-        - ❌ **Seasonal water scarcity** - 4-6 months dry period
-        - ❌ **Limited storage** - Only 2 small reservoirs
-        - ❌ **Aging infrastructure** - 40+ year old pipelines
-        - ❌ **Agricultural limitations** - Rain-dependent farming only
-        - ❌ **Economic impact** - Limited industrial development
+        **Current Infrastructure Status:**
+        - Seasonal water scarcity: 4-6 months dry period
+        - Limited storage capacity: 2 small reservoirs
+        - Aging distribution network: 40+ year old pipelines
+        - Agricultural limitations: Rain-dependent farming
+        - Economic constraints: Limited industrial development
         """)
     
     with col2:
-        st.markdown("### 🔵 Proposed Solution")
+        st.markdown(f"### {t['proposed_solution']}")
         st.markdown('<div class="engineering-diagram">', unsafe_allow_html=True)
-        st.image("https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=600&h=400&fit=crop", 
-                 caption=f"IBM-Designed Dam & Reservoir System for {rural_area}")
+        # Show 3D dam model
+        dam_fig = create_3d_dam_model()
+        st.plotly_chart(dam_fig, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
         
         st.markdown(f"""
         **IBM Engineering Solution:**
-        - ✅ **Gravity dam design** - 45m height, 5M m³ capacity
-        - ✅ **Year-round supply** - 100% water security
-        - ✅ **Modern distribution** - Smart water grid system
-        - ✅ **Agricultural boost** - Irrigation for 5,000+ hectares
-        - ✅ **Economic growth** - 450+ permanent jobs created
+        - Gravity dam design: 45m height, 5.2M m³ capacity
+        - Year-round water security: 100% reliability
+        - Modern distribution: Smart water grid implementation
+        - Agricultural enhancement: Irrigation for 5,000+ hectares
+        - Economic development: 450+ permanent employment opportunities
         """)
     
     # =============================================
-    # 📐 TECHNICAL ENGINEERING DIAGRAMS
+    # TECHNICAL ENGINEERING ANALYSIS
     # =============================================
     
-    st.markdown('<div class="section-header">📐 Engineering Design & Technical Analysis</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="section-header">{t["engineering_design"]}</div>', unsafe_allow_html=True)
     
-    tab1, tab2, tab3, tab4 = st.tabs(["🏗️ Structural Design", "📊 Hydrological Analysis", "💰 Economic Impact", "🌿 Environmental Assessment"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        t["structural_design"], 
+        "Construction Timeline", 
+        "Satellite Analysis",
+        t["economic_impact"], 
+        t["environmental_assessment"]
+    ])
     
     with tab1:
         col1, col2 = st.columns([2, 1])
         
         with col1:
-            st.subheader("Dam Cross-Section Design")
-            st.image("https://engineering.stackexchange.com/questions/37749/what-is-this-type-of-dam-called/37751#37751", 
-                     caption="Professional Engineering Diagram - Concrete Gravity Dam Design")
+            st.subheader("Structural Engineering Design")
+            cross_fig = create_engineering_diagrams()
+            st.plotly_chart(cross_fig, use_container_width=True)
             
         with col2:
             st.subheader("Technical Specifications")
             specs = {
-                "Parameter": ["Dam Type", "Height", "Crest Length", "Reservoir Capacity", "Construction Time", "Design Life"],
-                "Value": ["Concrete Gravity", "45 meters", "280 meters", "5.2 million m³", "24 months", "100+ years"]
+                "Parameter": ["Dam Type", "Height", "Crest Length", "Reservoir Capacity", "Design Life"],
+                "Value": ["Concrete Gravity", "45 meters", "280 meters", "5.2 million m³", "100+ years"]
             }
             st.dataframe(pd.DataFrame(specs), use_container_width=True)
             
             st.download_button(
-                "📥 Download Engineering Drawings",
-                data="Engineering drawings package",
-                file_name=f"dam_design_{rural_area}.zip",
+                "Download Engineering Specifications",
+                data=json.dumps(specs, indent=2),
+                file_name=f"engineering_specs_{rural_area}.json",
                 use_container_width=True
             )
     
     with tab2:
-        col1, col2 = st.columns([1, 1])
+        st.subheader("Construction Timeline and Progress")
+        timeline_fig, phases = create_construction_timeline()
+        st.plotly_chart(timeline_fig, use_container_width=True)
         
-        with col1:
-            st.subheader("Water Flow Analysis")
-            # Simulated hydrological data
-            months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-            rainfall = [120, 110, 95, 65, 40, 25, 20, 25, 40, 75, 95, 110]
-            usage = [85, 80, 75, 70, 65, 60, 55, 60, 65, 75, 80, 85]
-            
-            fig, ax = plt.subplots(figsize=(10, 6))
-            ax.plot(months, rainfall, label='Rainfall (mm)', marker='o', linewidth=2)
-            ax.plot(months, usage, label='Water Usage (L/person/day)', marker='s', linewidth=2)
-            ax.fill_between(months, rainfall, usage, alpha=0.3)
-            ax.set_ylabel('Millimeters / Liters')
-            ax.set_title('Monthly Water Balance Analysis')
-            ax.legend()
-            ax.grid(True, alpha=0.3)
-            st.pyplot(fig)
-        
-        with col2:
-            st.subheader("Reservoir Simulation")
-            st.metric("Current Capacity Utilization", "64%", "-3% from last month")
-            st.progress(0.64)
-            
-            st.metric("Evaporation Rate", "2.1mm/day", "Within normal range")
-            st.metric("Sedimentation Rate", "0.8% annually", "Low impact")
-            
-            # Water quality metrics
-            st.subheader("Water Quality Index")
-            quality_data = {
-                "Parameter": ["pH Level", "Turbidity", "Dissolved Oxygen", "Bacterial Count"],
-                "Value": ["7.2", "4.1 NTU", "8.2 mg/L", "12 CFU/mL"],
-                "Status": ["✅ Optimal", "✅ Good", "✅ Excellent", "✅ Safe"]
-            }
-            st.dataframe(pd.DataFrame(quality_data), use_container_width=True)
+        col1, col2, col3, col4 = st.columns(4)
+        for i, phase in enumerate(phases):
+            with [col1, col2, col3, col4][i]:
+                st.metric(phase["Phase"], f"{phase['Progress']}%", f"{phase['Start']} to {phase['Finish']}")
     
     with tab3:
+        st.subheader("Satellite Terrain Analysis")
+        satellite_fig = create_satellite_overlay(province, rural_area)
+        st.plotly_chart(satellite_fig, use_container_width=True)
+        
+        st.markdown("""
+        **Geospatial Analysis:**
+        - Optimal dam location identified through terrain modeling
+        - Catchment area: 150 km²
+        - Geological stability: Suitable for concrete gravity dam
+        - Environmental impact: Minimal disruption to ecosystems
+        """)
+    
+    with tab4:
         st.subheader("Economic Impact Analysis")
         
         col1, col2 = st.columns([2, 1])
         
         with col1:
-            # ROI Chart
-            years = [2024, 2025, 2026, 2027, 2028, 2029]
-            investment = [85, 5, 3, 2, 1.5, 1]  # Millions
-            benefits = [10, 25, 45, 65, 85, 110]  # Millions
+            # Economic projections
+            years = [2024, 2025, 2026, 2027, 2028]
+            investment = [85, 5, 3, 2, 1.5]
+            benefits = [10, 25, 45, 65, 85]
             
             fig, ax = plt.subplots(figsize=(10, 6))
             ax.bar([x-0.2 for x in years], investment, width=0.4, label='Investment (ZAR M)', color='#054ADA', alpha=0.7)
@@ -367,248 +607,154 @@ def show_main_dashboard(province, rural_area):
         with col2:
             st.subheader("Key Economic Metrics")
             metrics = {
-                "Metric": ["Total Investment", "Annual O&M Cost", "Job Creation", "Agricultural Boost", "ROI Period"],
-                "Value": ["ZAR 85M", "ZAR 2.5M/year", "450 jobs", "+ZAR 45M/year", "3.2 years"]
+                "Metric": ["Total Investment", "Annual O&M", "Job Creation", "Agricultural ROI", "Payback Period"],
+                "Value": ["ZAR 85M", "ZAR 2.5M/year", "450 jobs", "287%", "3.2 years"]
             }
             st.dataframe(pd.DataFrame(metrics), use_container_width=True)
-            
-            st.download_button(
-                "📥 Download Economic Report",
-                data="Comprehensive economic analysis",
-                file_name=f"economic_analysis_{rural_area}.pdf",
-                use_container_width=True
-            )
     
-    with tab4:
+    with tab5:
         st.subheader("Environmental Impact Assessment")
         
         col1, col2 = st.columns([1, 1])
         
         with col1:
-            # Environmental metrics
-            env_metrics = {
-                "Aspect": ["Carbon Reduction", "Biodiversity Impact", "Water Quality", "Soil Conservation", "Air Quality"],
-                "Rating": ["+250 tCO2/year", "Low Impact", "Grade A", "High Improvement", "No Impact"],
-                "Status": ["✅ Positive", "⚠️ Neutral", "✅ Positive", "✅ Positive", "✅ Positive"]
+            env_data = {
+                "Parameter": ["Carbon Reduction", "Biodiversity Impact", "Water Quality", "Soil Conservation"],
+                "Assessment": ["250 tCO2/year reduction", "Low impact - mitigation in place", "Grade A - improved quality", "High improvement potential"],
+                "Status": ["Positive", "Managed", "Positive", "Positive"]
             }
-            st.dataframe(pd.DataFrame(env_metrics), use_container_width=True)
-            
-            st.metric("Ecosystem Services Value", "ZAR 12M/year", "Sustainable")
+            st.dataframe(pd.DataFrame(env_data), use_container_width=True)
         
         with col2:
             st.subheader("Sustainability Features")
             st.markdown("""
-            - 🌿 **Fish ladders** for aquatic migration
-            - 🐦 **Protected zones** for bird habitats
-            - 💧 **Water recycling** systems
-            - ☀️ **Solar-powered** operations
-            - 📊 **Real-time monitoring** of environmental indicators
+            - Fish passage facilities for aquatic migration
+            - Protected ecological zones
+            - Water recycling and treatment systems
+            - Solar-powered operations
+            - Continuous environmental monitoring
             """)
     
     # =============================================
-    # 🏆 COMMUNITY CHALLENGE MODE
+    # COMMUNITY AND SUSTAINABILITY
     # =============================================
     
-    st.markdown('<div class="section-header">🏆 Community Challenge: Water Warriors</div>', unsafe_allow_html=True)
-    
-    st.markdown("""
-    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 15px; margin: 1rem 0;">
-        <h3 style="color: white; margin: 0;">🏅 Compete with Neighboring Communities!</h3>
-        <p style="color: white; margin: 0.5rem 0 0 0;">Earn badges, climb leaderboards, and win community rewards for water conservation.</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f'<div class="section-header">{t["community_challenge"]}</div>', unsafe_allow_html=True)
     
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.subheader("🏆 Community Leaderboard")
+        st.subheader("Water Conservation Progress")
         
-        leaderboard_data = {
-            'Rank': ['🥇', '🥈', '🥉', '4', '5'],
-            'Community': [rural_area, 'Neighbor A', 'Neighbor B', 'Neighbor C', 'Neighbor D'],
-            'Water Saved (kL)': [15.2, 12.8, 9.5, 7.2, 5.8],
-            'Badges': ['💧🔥🌿', '💧🌿', '💧🌿', '💧', '💧'],
-            'Trend': ['📈 +12%', '📈 +8%', '📈 +5%', '📉 -2%', '📈 +3%']
+        progress_data = {
+            'Metric': ['Current Consumption', 'Conservation Target', 'Community Savings', 'Infrastructure Progress'],
+            'Value': ['85 L/person/day', '65 L/person/day', '15,200 L/day', '42%'],
+            'Status': ['Above Target', 'Target', 'Achieved', 'On Track']
         }
-        
-        leaderboard_df = pd.DataFrame(leaderboard_data)
-        st.dataframe(leaderboard_df, use_container_width=True)
+        st.dataframe(pd.DataFrame(progress_data), use_container_width=True)
     
     with col2:
-        st.subheader("🎖️ Your Badges")
-        
-        badges = {
-            "Water Saver Pro": {"earned": True, "progress": 100},
-            "Community Leader": {"earned": True, "progress": 100},
-            "Conservation Champion": {"earned": False, "progress": 75},
-            "Sustainability Expert": {"earned": False, "progress": 60},
-            "Innovation Pioneer": {"earned": False, "progress": 40}
+        st.subheader("Achievement Status")
+        achievements = {
+            "Water Efficiency": 75,
+            "Community Participation": 60,
+            "Infrastructure Development": 42,
+            "Conservation Impact": 85
         }
         
-        for badge, status in badges.items():
-            emoji = "✅" if status["earned"] else "⏳"
-            st.write(f"{emoji} **{badge}**")
-            st.progress(status["progress"] / 100)
+        for achievement, progress in achievements.items():
+            st.write(f"{achievement}")
+            st.progress(progress/100)
     
     # =============================================
-    # 📈 REAL-TIME ANALYTICS & PREDICTIONS
+    # SUSTAINABILITY PLANNING
     # =============================================
     
-    st.markdown('<div class="section-header">📈 IBM AI-Powered Analytics</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="section-header">{t["sustainability_plan"]}</div>', unsafe_allow_html=True)
     
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("🌊 Real-Time Water Monitoring")
-        
-        # Simulated real-time data
-        current_time = datetime.now()
-        times = [current_time - timedelta(hours=i) for i in range(24, 0, -1)]
-        levels = [65 + np.random.normal(0, 2) for _ in range(24)]
-        
-        chart_data = pd.DataFrame({
-            'Time': times,
-            'Water Level (%)': levels
-        })
-        
-        st.line_chart(chart_data.set_index('Time'))
-        
-        # Alert system
-        st.subheader("🚨 AI Water Stress Alerts")
-        if levels[-1] < 60:
-            st.error("🔴 HIGH STRESS: Water levels critical - conservation measures recommended")
-        elif levels[-1] < 70:
-            st.warning("🟡 MEDIUM STRESS: Monitor closely - consider water rationing")
-        else:
-            st.success("🟢 NORMAL: Water supply stable")
-    
-    with col2:
-        st.subheader("🔮 Predictive Water Demand")
-        
-        # Future prediction
-        future_months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
-        current_demand = [85, 82, 80, 78, 75, 72]
-        predicted_demand = [72, 70, 75, 80, 85, 88]
-        
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.plot(future_months, current_demand, label='Current Pattern', marker='o', linewidth=2)
-        ax.plot(future_months, predicted_demand, label='AI Prediction', marker='s', linewidth=2, linestyle='--')
-        ax.fill_between(future_months, current_demand, predicted_demand, alpha=0.3)
-        ax.set_ylabel('Water Demand (L/person/day)')
-        ax.set_title('AI-Powered Demand Forecasting')
-        ax.legend()
-        ax.grid(True, alpha=0.3)
-        st.pyplot(fig)
-    
-    # =============================================
-    # 💡 PERSONALIZED SUSTAINABILITY PLAN
-    # =============================================
-    
-    st.markdown('<div class="section-header">💡 Your Personalized Sustainability Plan</div>', unsafe_allow_html=True)
-    
-    tab1, tab2, tab3 = st.tabs(["🏠 Household Actions", "👥 Community Projects", "🏢 Business Opportunities"])
+    tab1, tab2, tab3 = st.tabs([
+        t["household_actions"],
+        t["community_projects"], 
+        t["business_opportunities"]
+    ])
     
     with tab1:
-        st.subheader("🏠 Immediate Household Actions")
+        st.subheader("Household Water Conservation")
         
         actions = {
             "High Impact": [
-                "💧 Install rainwater harvesting (Save: 40,000L/year)",
-                "🚰 Fix leaky faucets immediately (Save: 35,000L/year)",
-                "🌿 Switch to drip irrigation (Save: 25,000L/year)"
+                "Install rainwater harvesting systems - Potential savings: 40,000L/year",
+                "Repair leaking fixtures immediately - Potential savings: 35,000L/year",
+                "Implement drip irrigation systems - Potential savings: 25,000L/year"
             ],
             "Medium Impact": [
-                "🕒 Shorter showers (Save: 15,000L/year)",
-                "🌅 Water plants early morning (Save: 8,000L/year)",
-                "🧹 Use broom instead of hose (Save: 6,000L/year)"
-            ],
-            "Low Impact": [
-                "🚰 Turn off tap when brushing (Save: 4,000L/year)",
-                "🧊 Keep drinking water refrigerated (Save: 2,000L/year)",
-                "👕 Full laundry loads only (Save: 3,000L/year)"
+                "Reduce shower duration - Potential savings: 15,000L/year",
+                "Optimize plant watering schedules - Potential savings: 8,000L/year",
+                "Use water-efficient cleaning methods - Potential savings: 6,000L/year"
             ]
         }
         
         for category, action_list in actions.items():
-            with st.expander(f"📋 {category} Recommendations"):
+            with st.expander(f"{category} Actions"):
                 for action in action_list:
                     st.write(f"• {action}")
     
     with tab2:
-        st.subheader("👥 Community-Led Initiatives")
+        st.subheader("Community Infrastructure Projects")
         
         st.markdown("""
-        - **🏫 School Water Education Program** - Engage 500+ students
-        - **🌳 Community Garden with Smart Irrigation** - Food security + education
-        - **📊 Neighborhood Water Monitoring** - Citizen science project
-        - **🎯 Water Conservation Competitions** - Prizes for most water saved
-        - **🔧 DIY Rainwater Harvesting Workshops** - Hands-on training
+        - School Water Education Program: Engage 500+ students in water conservation
+        - Community Garden with Smart Irrigation: Combine food security with education
+        - Neighborhood Water Monitoring: Citizen science initiative for water quality
+        - Water Conservation Competitions: Incentivize household water savings
+        - Rainwater Harvesting Workshops: Practical training for community members
         """)
-        
-        if st.button("🚀 Start Community Project", type="secondary"):
-            st.success("Community project toolkit downloaded! Check your downloads folder.")
     
     with tab3:
-        st.subheader("🏢 Economic Opportunities")
+        st.subheader("Economic Development Opportunities")
         
         st.markdown("""
-        - **💧 Water Bottling Plant** - Local employment + revenue
-        - **🌾 Commercial Agriculture** - High-value crop irrigation
-        - **🏭 Light Manufacturing** - Water-dependent industries
-        - **♻️ Water Treatment Services** - New business vertical
-        - **📡 Smart Water Tech** - IoT monitoring solutions
+        - Water-Dependent Manufacturing: Local production facilities
+        - Commercial Agriculture Expansion: High-value crop cultivation
+        - Water Treatment Services: New business verticals
+        - Smart Water Technology: IoT and monitoring solutions
+        - Eco-Tourism Development: Leverage water infrastructure for tourism
         """)
     
     # =============================================
-    # 📱 MOBILE & LOW-BANDWIDTH OPTIMIZATION
+    # PROFESSIONAL DOCUMENTATION
     # =============================================
     
     st.sidebar.markdown("---")
-    st.sidebar.markdown("### 🌐 Access Options")
-    
-    if st.sidebar.checkbox("Enable Low-Bandwidth Mode"):
-        st.info("🌐 Low-bandwidth mode activated - simplified interface for better performance")
-    
-    # =============================================
-    # 📚 PROFESSIONAL DOCUMENTATION
-    # =============================================
-    
-    st.sidebar.markdown("### 📚 Project Documentation")
+    st.sidebar.markdown("### Professional Documentation")
     
     st.sidebar.download_button(
-        "📥 Full Engineering Report",
+        "Download Engineering Report",
         data="Comprehensive engineering analysis document",
-        file_name=f"ibm_water_infrastructure_report_{rural_area}.pdf",
+        file_name=f"water_infrastructure_report_{rural_area}.pdf",
         use_container_width=True
     )
     
     st.sidebar.download_button(
-        "📥 Community Impact Assessment",
-        data="Detailed community benefits analysis",
-        file_name=f"community_impact_assessment_{rural_area}.pdf",
-        use_container_width=True
-    )
-    
-    st.sidebar.download_button(
-        "📥 Economic Feasibility Study",
-        data="Complete financial analysis and ROI calculation",
-        file_name=f"economic_feasibility_{rural_area}.pdf",
+        "Download Environmental Assessment",
+        data="Detailed environmental impact analysis",
+        file_name=f"environmental_assessment_{rural_area}.pdf",
         use_container_width=True
     )
     
     # =============================================
-    # 🔄 RESET OPTION
+    # NAVIGATION
     # =============================================
     
     st.sidebar.markdown("---")
-    if st.sidebar.button("🔄 Analyze Different Area", type="secondary"):
+    if st.sidebar.button("Analyze Different Area", type="secondary"):
         st.session_state.user_area_selected = False
         st.session_state.selected_province = None
         st.session_state.selected_rural_area = None
         st.rerun()
 
 # =============================================
-# 🎯 MAIN APP FLOW
+# MAIN APPLICATION FLOW
 # =============================================
 
 if not st.session_state.user_area_selected:
@@ -617,15 +763,15 @@ else:
     show_main_dashboard(st.session_state.selected_province, st.session_state.selected_rural_area)
 
 # =============================================
-# 🏆 IBM FOOTER & CREDITS
+# PROFESSIONAL FOOTER
 # =============================================
 
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; color: #666; padding: 2rem;">
-    <h4>💧 IBM Water Infrastructure Intelligence Platform</h4>
-    <p>Powered by IBM Z Cloud • AI Analytics • Sustainable Development Goals</p>
-    <p><em>Transforming complex global water data into simple, actionable insights for everyday people</em></p>
-    <p style="font-size: 0.9rem;">© 2024 IBM Corporation. All rights reserved.</p>
+    <h4>IBM Water Infrastructure Intelligence Platform</h4>
+    <p>Powered by IBM Z Cloud • Watson AI Analytics • Professional Engineering Standards</p>
+    <p style="font-size: 0.9rem;">Transforming water infrastructure planning through advanced analytics and professional engineering</p>
+    <p style="font-size: 0.8rem;">© 2024 IBM Corporation. All rights reserved.</p>
 </div>
 """, unsafe_allow_html=True)
