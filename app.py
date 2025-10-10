@@ -1,13 +1,5 @@
-# 🚀 ENTERPRISE-GRADE IBM WATER INFRASTRUCTURE PLATFORM
+# ENTERPRISE WATER INFRASTRUCTURE PLATFORM
 
-# =============================================
-# SOURCE ATTRIBUTION
-# =============================================
-# BEFORE: Source code adapted from IBM Water Infrastructure Solutions
-# AFTER: Enterprise Platform Enhancements
-# =============================================
-
-# app.py - ENTERPRISE IBM WATER INFRASTRUCTURE INTELLIGENCE PLATFORM
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -27,7 +19,6 @@ warnings.filterwarnings('ignore')
 # DEPENDENCY HANDLING
 # =============================================
 
-# Check for folium and provide fallback
 try:
     import folium
     from streamlit_folium import folium_static
@@ -40,7 +31,7 @@ except ImportError:
 # =============================================
 
 st.set_page_config(
-    page_title="IBM Water Infrastructure Enterprise Platform",
+    page_title="Water Infrastructure Enterprise Platform",
     page_icon="💧",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -99,17 +90,19 @@ st.markdown("""
         text-align: center;
         margin: 1rem 0;
     }
-    .back-button {
-        background: #054ADA;
-        color: white;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        cursor: pointer;
-        margin-bottom: 1rem;
+    .target-metric {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 6px;
+        margin: 0.5rem 0;
+        border-left: 4px solid #28a745;
     }
-    .back-button:hover {
-        background: #0039a6;
+    .current-metric {
+        background: #e7f3ff;
+        padding: 1rem;
+        border-radius: 6px;
+        margin: 0.5rem 0;
+        border-left: 4px solid #054ADA;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -118,14 +111,14 @@ st.markdown("""
 # ENTERPRISE DATA SERVICES
 # =============================================
 
-class IBMWatsonService:
-    """Enterprise IBM Watson Integration"""
+class AnalyticsService:
+    """Enterprise Analytics Integration"""
     
     @staticmethod
     def get_water_stress_prediction(province, rural_area):
-        """Get water stress predictions from IBM Watson"""
+        """Get water stress predictions from Enterprise Analytics"""
         try:
-            # Simulated Watson API call - Replace with actual IBM Watson service
+            # Simulated API call
             predictions = {
                 "water_stress_level": max(0.6, min(0.9, 0.7 + np.random.normal(0, 0.1))),
                 "infrastructure_risk": max(0.3, min(0.8, 0.5 + np.random.normal(0, 0.1))),
@@ -146,6 +139,53 @@ class IBMWatsonService:
         except Exception as e:
             st.error(f"Analytics Service temporarily unavailable: {e}")
             return {}, ["Service updating - check back in 5 minutes"]
+
+class ImpactTargets:
+    """Impact Targets and Current Progress Tracking"""
+    
+    @staticmethod
+    def get_impact_targets(province, rural_area, project_scale):
+        """Get target impacts and current progress"""
+        
+        # Base targets that vary by province and project scale
+        base_targets = {
+            "Eastern Cape": {"jobs_target": 420, "economic_impact_target": 85, "water_access_target": 85},
+            "Free State": {"jobs_target": 380, "economic_impact_target": 75, "water_access_target": 80},
+            "Gauteng": {"jobs_target": 500, "economic_impact_target": 100, "water_access_target": 90},
+            "KwaZulu-Natal": {"jobs_target": 450, "economic_impact_target": 90, "water_access_target": 85},
+            "Limpopo": {"jobs_target": 400, "economic_impact_target": 80, "water_access_target": 80},
+            "Mpumalanga": {"jobs_target": 420, "economic_impact_target": 85, "water_access_target": 82},
+            "North West": {"jobs_target": 380, "economic_impact_target": 75, "water_access_target": 78},
+            "Northern Cape": {"jobs_target": 350, "economic_impact_target": 70, "water_access_target": 75},
+            "Western Cape": {"jobs_target": 480, "economic_impact_target": 95, "water_access_target": 88}
+        }
+        
+        # Scale multipliers
+        scale_multipliers = {
+            "Small": 0.6,
+            "Medium": 0.8,
+            "Large": 1.0,
+            "Enterprise": 1.2
+        }
+        
+        province_targets = base_targets.get(province, {"jobs_target": 400, "economic_impact_target": 80, "water_access_target": 80})
+        multiplier = scale_multipliers.get(project_scale, 1.0)
+        
+        # Calculate adjusted targets
+        targets = {
+            "jobs_target": int(province_targets["jobs_target"] * multiplier),
+            "economic_impact_target": int(province_targets["economic_impact_target"] * multiplier),
+            "water_access_target": province_targets["water_access_target"]
+        }
+        
+        # Calculate current progress (simulated - would come from real data)
+        current_progress = {
+            "jobs_current": int(targets["jobs_target"] * (0.3 + np.random.random() * 0.4)),  # 30-70% progress
+            "economic_current": int(targets["economic_impact_target"] * (0.25 + np.random.random() * 0.5)),  # 25-75% progress
+            "water_access_current": 42 + np.random.randint(5, 25)  # Current water access
+        }
+        
+        return targets, current_progress
 
 class SatelliteImageryService:
     """Live Satellite Imagery Integration"""
@@ -349,55 +389,61 @@ class JobsAnalysis:
     """Comprehensive Jobs Creation Analysis"""
     
     @staticmethod
-    def get_jobs_breakdown(province, rural_area, project_scale):
+    def get_jobs_breakdown(province, rural_area, project_scale, targets):
         """Detailed jobs creation analysis with economic impact"""
         
-        # Jobs by phase and category
+        # Calculate jobs based on targets and progress
+        target_jobs = targets["jobs_target"]
+        current_jobs = int(target_jobs * (0.3 + np.random.random() * 0.4))  # Simulated progress
+        
+        # Jobs by phase and category (scaled to targets)
+        scale_factor = target_jobs / 450  # Base scaling factor
+        
         jobs_data = {
             "Construction Phase": {
                 "Skilled Labor": {
-                    "Civil Engineers": 15,
-                    "Structural Engineers": 8,
-                    "Construction Managers": 6,
-                    "Heavy Equipment Operators": 25,
-                    "Electricians": 12,
-                    "Plumbers": 10,
-                    "Welders": 18,
-                    "Surveyors": 5
+                    "Civil Engineers": max(1, int(15 * scale_factor)),
+                    "Structural Engineers": max(1, int(8 * scale_factor)),
+                    "Construction Managers": max(1, int(6 * scale_factor)),
+                    "Heavy Equipment Operators": max(1, int(25 * scale_factor)),
+                    "Electricians": max(1, int(12 * scale_factor)),
+                    "Plumbers": max(1, int(10 * scale_factor)),
+                    "Welders": max(1, int(18 * scale_factor)),
+                    "Surveyors": max(1, int(5 * scale_factor))
                 },
                 "Unskilled Labor": {
-                    "General Laborers": 120,
-                    "Assistant Workers": 80,
-                    "Site Cleaners": 15,
-                    "Material Handlers": 25
+                    "General Laborers": max(1, int(120 * scale_factor)),
+                    "Assistant Workers": max(1, int(80 * scale_factor)),
+                    "Site Cleaners": max(1, int(15 * scale_factor)),
+                    "Material Handlers": max(1, int(25 * scale_factor))
                 },
                 "Professional Services": {
-                    "Project Managers": 4,
-                    "Safety Officers": 6,
-                    "Quality Inspectors": 8,
-                    "Administrative Staff": 10
+                    "Project Managers": max(1, int(4 * scale_factor)),
+                    "Safety Officers": max(1, int(6 * scale_factor)),
+                    "Quality Inspectors": max(1, int(8 * scale_factor)),
+                    "Administrative Staff": max(1, int(10 * scale_factor))
                 }
             },
             "Operational Phase": {
                 "Technical Operations": {
-                    "Dam Operators": 8,
-                    "Maintenance Technicians": 12,
-                    "Water Quality Analysts": 6,
-                    "Electrical Technicians": 4
+                    "Dam Operators": max(1, int(8 * scale_factor)),
+                    "Maintenance Technicians": max(1, int(12 * scale_factor)),
+                    "Water Quality Analysts": max(1, int(6 * scale_factor)),
+                    "Electrical Technicians": max(1, int(4 * scale_factor))
                 },
                 "Administrative": {
-                    "Facility Managers": 2,
-                    "Administrative Staff": 6,
-                    "Security Personnel": 8,
-                    "Grounds Maintenance": 4
+                    "Facility Managers": max(1, int(2 * scale_factor)),
+                    "Administrative Staff": max(1, int(6 * scale_factor)),
+                    "Security Personnel": max(1, int(8 * scale_factor)),
+                    "Grounds Maintenance": max(1, int(4 * scale_factor))
                 }
             },
             "Indirect Employment": {
                 "Local Economy": {
-                    "Agriculture Support": 45,
-                    "Small Businesses": 30,
-                    "Transport Services": 15,
-                    "Hospitality Services": 20
+                    "Agriculture Support": max(1, int(45 * scale_factor)),
+                    "Small Businesses": max(1, int(30 * scale_factor)),
+                    "Transport Services": max(1, int(15 * scale_factor)),
+                    "Hospitality Services": max(1, int(20 * scale_factor))
                 }
             }
         }
@@ -426,14 +472,15 @@ class JobsAnalysis:
                     wage_analysis[category]["annual_income"] = category_income
                     total_annual_income += category_income
         
-        return jobs_data, wage_analysis, total_jobs, total_annual_income
+        return jobs_data, wage_analysis, total_jobs, total_annual_income, current_jobs
 
 # =============================================
 # ENTERPRISE USER INTERFACE
 # =============================================
 
 # Initialize enterprise services
-watson_service = IBMWatsonService()
+analytics_service = AnalyticsService()
+impact_targets = ImpactTargets()
 satellite_service = SatelliteImageryService()
 hydrological_model = HydrologicalModel()
 iot_service = IoTDataService()
@@ -444,9 +491,9 @@ jobs_analyzer = JobsAnalysis()
 # Professional Header
 st.markdown("""
 <div class="main-header">
-    <h1 style="color: white; margin: 0; font-size: 2.5rem;">IBM Water Infrastructure Enterprise Platform</h1>
+    <h1 style="color: white; margin: 0; font-size: 2.5rem;">Water Infrastructure Enterprise Platform</h1>
     <p style="color: white; font-size: 1.1rem; margin: 0.5rem 0 0 0;">
-    Enterprise-Grade Water Infrastructure Intelligence • IBM Watson • Real-Time Monitoring
+    Enterprise-Grade Water Infrastructure Intelligence • Advanced Analytics • Real-Time Monitoring
     </p>
 </div>
 """, unsafe_allow_html=True)
@@ -464,81 +511,109 @@ def show_enterprise_dashboard(province, rural_area):
     # Add back button at the top
     col1, col2 = st.columns([6, 1])
     with col2:
-        if st.button("← Change Location", type="secondary", use_container_width=True):
+        if st.button("Change Location", type="secondary", use_container_width=True):
             st.session_state.user_area_selected = False
             st.rerun()
     
+    # Project scale selection
+    project_scale = st.selectbox(
+        "Project Scale:",
+        ["Small", "Medium", "Large", "Enterprise"],
+        key="project_scale"
+    )
+    
+    # Get impact targets and current progress
+    targets, current_progress = impact_targets.get_impact_targets(province, rural_area, project_scale)
+    
     # Get all enterprise data
-    watson_predictions, insights = watson_service.get_water_stress_prediction(province, rural_area)
+    predictions, insights = analytics_service.get_water_stress_prediction(province, rural_area)
     satellite_map = satellite_service.get_satellite_map(province, rural_area)
     iot_data, historical_data = iot_service.get_sensor_data(province, rural_area)
     compliance_data = regulatory_service.get_compliance_status(province, "Design")
     stakeholders = stakeholder_manager.get_stakeholders()
-    jobs_data, wage_analysis, total_jobs, total_income = jobs_analyzer.get_jobs_breakdown(province, rural_area, "Large")
+    jobs_data, wage_analysis, total_jobs, total_income, current_jobs = jobs_analyzer.get_jobs_breakdown(province, rural_area, project_scale, targets)
     
     # Show dependency warning only once at the top if folium is not available
     if not FOLIUM_AVAILABLE:
-        st.warning("⚠️ **Mapping Features Limited**: Folium package not installed. Some satellite mapping features will be limited.")
-        st.info("💡 **To enable full mapping capabilities**: Run `pip install folium streamlit-folium` in your terminal")
+        st.warning("Mapping Features Limited: Folium package not installed. Some satellite mapping features will be limited.")
+        st.info("To enable full mapping capabilities: Run the following command in your terminal:\n\n```bash\npip install folium streamlit-folium\n```")
     
     # =============================================
-    # EXECUTIVE SUMMARY - ENTERPRISE METRICS
+    # EXECUTIVE SUMMARY - TARGETS VS CURRENT PROGRESS
     # =============================================
     
     st.markdown(f'<div class="section-header">Enterprise Executive Summary: {rural_area}, {province}</div>', unsafe_allow_html=True)
     
-    col1, col2, col3, col4, col5 = st.columns(5)
+    # Targets vs Current Progress
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         st.markdown(f"""
-        <div class="metric-card">
-            <h3>Water Access Index</h3>
-            <h2 class="status-critical">42%</h2>
-            <p>Current Infrastructure Status</p>
+        <div class="target-metric">
+            <h3>Water Access Target</h3>
+            <h2>{targets['water_access_target']}%</h2>
+            <p>Post-Project Target</p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="current-metric">
+            <h3>Current Water Access</h3>
+            <h2>{current_progress['water_access_current']}%</h2>
+            <p>Pre-Project Baseline</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col2:
         st.markdown(f"""
-        <div class="metric-card">
-            <h3>Risk Assessment</h3>
-            <h2 class="status-warning">{watson_predictions.get('water_stress_level', 0):.0%}</h2>
-            <p>Water Stress Prediction</p>
+        <div class="target-metric">
+            <h3>Jobs Creation Target</h3>
+            <h2>{targets['jobs_target']}</h2>
+            <p>Total Employment Target</p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="current-metric">
+            <h3>Current Jobs Created</h3>
+            <h2>{current_jobs}</h2>
+            <p>Progress to Date</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col3:
         st.markdown(f"""
-        <div class="metric-card">
-            <h3>Jobs Creation</h3>
-            <h2 class="status-positive">{total_jobs}</h2>
-            <p>Total Employment Impact</p>
+        <div class="target-metric">
+            <h3>Economic Impact Target</h3>
+            <h2>ZAR {targets['economic_impact_target']}M</h2>
+            <p>Annual Target</p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="current-metric">
+            <h3>Current Economic Impact</h3>
+            <h2>ZAR {current_progress['economic_current']}M</h2>
+            <p>Annual Impact to Date</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col4:
+        progress_percentage = min(100, int((current_jobs / targets['jobs_target']) * 100)) if targets['jobs_target'] > 0 else 0
         st.markdown(f"""
         <div class="metric-card">
-            <h3>Economic Impact</h3>
-            <h2>ZAR {total_income/1000000:.1f}M</h2>
-            <p>Annual Income Generation</p>
+            <h3>Overall Progress</h3>
+            <h2>{progress_percentage}%</h2>
+            <p>Towards Project Targets</p>
         </div>
         """, unsafe_allow_html=True)
-    
-    with col5:
-        st.markdown(f"""
-        <div class="metric-card">
-            <h3>Compliance Status</h3>
-            <h2 class="status-positive">67%</h2>
-            <p>Regulatory Requirements Met</p>
-        </div>
-        """, unsafe_allow_html=True)
+        
+        # Progress bar
+        st.progress(progress_percentage / 100)
+        st.caption(f"Project Completion: {progress_percentage}%")
     
     # =============================================
     # ENTERPRISE ANALYTICS
     # =============================================
     
-    st.markdown('<div class="section-header">IBM Watson Enterprise Analytics</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">Enterprise Analytics</div>', unsafe_allow_html=True)
     
     col1, col2 = st.columns([2, 1])
     
@@ -550,9 +625,9 @@ def show_enterprise_dashboard(province, rural_area):
         # Risk Dashboard
         st.subheader("Enterprise Risk Assessment")
         risk_metrics = [
-            ("Water Stress Level", watson_predictions.get('water_stress_level', 0), 0.7),
-            ("Infrastructure Risk", watson_predictions.get('infrastructure_risk', 0), 0.5),
-            ("Drought Probability", watson_predictions.get('drought_probability', 0), 0.4)
+            ("Water Stress Level", predictions.get('water_stress_level', 0), 0.7),
+            ("Infrastructure Risk", predictions.get('infrastructure_risk', 0), 0.5),
+            ("Drought Probability", predictions.get('drought_probability', 0), 0.4)
         ]
         
         for metric, value, threshold in risk_metrics:
@@ -567,7 +642,7 @@ def show_enterprise_dashboard(province, rural_area):
                     st.caption("High Risk - Immediate Action Recommended")
     
     with col2:
-        st.subheader("Real-Time IoT Monitoring")
+        st.subheader("Real-Time Monitoring")
         if iot_data:
             st.metric("Water Level", f"{iot_data['water_level']:.1f}%", "-2.3%")
             st.metric("Water Quality pH", f"{iot_data['water_quality']:.1f}", "Optimal")
@@ -581,27 +656,27 @@ def show_enterprise_dashboard(province, rural_area):
     st.markdown('<div class="section-header">Engineering Intelligence & Construction Planning</div>', unsafe_allow_html=True)
     
     tab1, tab2, tab3, tab4 = st.tabs([
-        "Satellite Analysis & GIS", 
+        "Satellite Analysis", 
         "Hydrological Modeling", 
-        "CAD Design Integration",
+        "Design Integration",
         "Construction Timeline"
     ])
     
     with tab1:
-        st.subheader("Live Satellite Imagery & Geospatial Analysis")
+        st.subheader("Satellite Imagery & Geospatial Analysis")
         
         if satellite_map and FOLIUM_AVAILABLE:
             folium_static(satellite_map, width=800, height=500)
         else:
             st.markdown(f"""
             <div class="map-placeholder">
-                <h3>🌍 Satellite Mapping Service</h3>
-                <p><strong>Interactive satellite mapping requires additional dependencies</strong></p>
-                <p style="margin-top: 1rem;">📍 <strong>Proposed Dam Site Location:</strong> {rural_area}, {province}</p>
-                <p>🗺️ <strong>Catchment Area:</strong> 150 km² with favorable geology</p>
-                <p>🏗️ <strong>Site Status:</strong> Optimal dam location identified</p>
-                <p>📐 <strong>Topography:</strong> Gentle slopes with stable bedrock foundation</p>
-                <p>💧 <strong>Water Yield:</strong> Estimated 12.5 million m³ annual capacity</p>
+                <h3>Satellite Mapping Service</h3>
+                <p>Interactive satellite mapping requires additional dependencies</p>
+                <p style="margin-top: 1rem;">Proposed Dam Site Location: {rural_area}, {province}</p>
+                <p>Catchment Area: 150 km² with favorable geology</p>
+                <p>Site Status: Optimal dam location identified</p>
+                <p>Topography: Gentle slopes with stable bedrock foundation</p>
+                <p>Water Yield: Estimated 12.5 million m³ annual capacity</p>
             </div>
             """, unsafe_allow_html=True)
         
@@ -609,7 +684,7 @@ def show_enterprise_dashboard(province, rural_area):
         
         with col1:
             st.subheader("Site Analysis")
-            st.write("**Topographical Assessment:**")
+            st.write("Topographical Assessment:")
             st.write("- Optimal dam location identified through terrain modeling")
             st.write("- Catchment area: 150 km² with favorable geology")
             st.write("- Minimal environmental disruption anticipated")
@@ -625,7 +700,7 @@ def show_enterprise_dashboard(province, rural_area):
             st.dataframe(pd.DataFrame(soil_data), use_container_width=True)
     
     with tab2:
-        st.subheader("Advanced Hydrological Modeling")
+        st.subheader("Hydrological Modeling")
         
         col1, col2 = st.columns([2, 1])
         
@@ -665,17 +740,16 @@ def show_enterprise_dashboard(province, rural_area):
             )
     
     with tab3:
-        st.subheader("Professional CAD Design Integration")
+        st.subheader("Professional Design Integration")
         
         col1, col2 = st.columns(2)
         
         with col1:
             st.markdown('<div class="engineering-diagram">', unsafe_allow_html=True)
             st.subheader("Structural Design - Cross Section")
-            # Using a placeholder for CAD diagram
-            st.info("🏗️ **Professional CAD Integration**")
+            st.write("Professional CAD Integration")
             st.write("Enterprise CAD system would display detailed engineering drawings here.")
-            st.write("**Features:**")
+            st.write("Features:")
             st.write("- Structural cross-sections")
             st.write("- Reinforcement detailing")
             st.write("- Foundation design")
@@ -683,7 +757,7 @@ def show_enterprise_dashboard(province, rural_area):
             st.markdown('</div>', unsafe_allow_html=True)
             
             st.download_button(
-                "Download CAD Design Specifications",
+                "Download Design Specifications",
                 data=json.dumps({
                     "project": f"Dam Construction - {rural_area}",
                     "structural_type": "Concrete Gravity Dam",
@@ -718,7 +792,7 @@ def show_enterprise_dashboard(province, rural_area):
             st.markdown('</div>', unsafe_allow_html=True)
     
     with tab4:
-        st.subheader("Enterprise Construction Management")
+        st.subheader("Construction Management")
         
         # Gantt chart for construction timeline
         phases = [
@@ -742,64 +816,64 @@ def show_enterprise_dashboard(province, rural_area):
         st.plotly_chart(fig_timeline, use_container_width=True)
     
     # =============================================
-    # COMPREHENSIVE JOBS CREATION ANALYSIS
+    # COMPREHENSIVE IMPACT ANALYSIS
     # =============================================
     
-    st.markdown('<div class="section-header">Comprehensive Employment Impact Analysis</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">Comprehensive Impact Analysis</div>', unsafe_allow_html=True)
     
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.subheader("Jobs Creation Breakdown by Phase and Category")
+        st.subheader("Target vs Current Impact")
         
-        # Jobs visualization
-        jobs_categories = []
-        jobs_counts = []
+        # Create comparison chart
+        impact_data = {
+            "Metric": ["Jobs Creation", "Economic Impact (ZAR M)", "Water Access (%)"],
+            "Target": [targets['jobs_target'], targets['economic_impact_target'], targets['water_access_target']],
+            "Current": [current_jobs, current_progress['economic_current'], current_progress['water_access_current']]
+        }
         
-        for phase, categories in jobs_data.items():
-            for category, positions in categories.items():
-                total_category_jobs = sum(positions.values())
-                jobs_categories.append(f"{phase} - {category}")
-                jobs_counts.append(total_category_jobs)
-        
-        fig_jobs = px.bar(
-            x=jobs_counts,
-            y=jobs_categories,
-            orientation='h',
-            title="Employment Distribution Across Project Phases",
-            labels={'x': 'Number of Jobs', 'y': 'Category'}
-        )
-        st.plotly_chart(fig_jobs, use_container_width=True)
+        df_impact = pd.DataFrame(impact_data)
+        fig_impact = px.bar(df_impact, x='Metric', y=['Target', 'Current'], 
+                           barmode='group', title="Target vs Current Impact Metrics")
+        st.plotly_chart(fig_impact, use_container_width=True)
     
     with col2:
-        st.subheader("Economic Impact Summary")
+        st.subheader("Impact Summary")
         
-        st.metric("Total Direct Jobs", f"{total_jobs}")
-        st.metric("Annual Wage Impact", f"ZAR {total_income/1000000:.1f}M")
-        st.metric("Average Salary", f"ZAR {total_income/total_jobs:,.0f}")
-        st.metric("Local Employment", "85% of total workforce")
+        st.metric("Total Jobs Target", f"{targets['jobs_target']}")
+        st.metric("Current Jobs Created", f"{current_jobs}")
+        st.metric("Remaining Jobs", f"{targets['jobs_target'] - current_jobs}")
+        
+        st.metric("Economic Target", f"ZAR {targets['economic_impact_target']}M")
+        st.metric("Current Economic Impact", f"ZAR {current_progress['economic_current']}M")
+        st.metric("Water Access Target", f"{targets['water_access_target']}%")
         
         st.download_button(
-            "Download Employment Impact Report",
-            data=json.dumps(jobs_data, indent=2),
-            file_name=f"employment_impact_{rural_area}.json",
+            "Download Impact Report",
+            data=json.dumps({
+                "targets": targets,
+                "current_progress": current_progress,
+                "jobs_data": jobs_data
+            }, indent=2),
+            file_name=f"impact_analysis_{rural_area}.json",
             use_container_width=True
         )
     
     # Detailed jobs breakdown
-    st.subheader("Detailed Employment Analysis by Category")
+    st.subheader("Detailed Employment Analysis")
     
     for phase, categories in jobs_data.items():
         with st.expander(f"{phase} - {sum(sum(subcat.values()) for subcat in categories.values())} Jobs"):
             for category, positions in categories.items():
-                st.write(f"**{category}:**")
+                st.write(f"{category}:")
                 cols = st.columns(4)
                 for i, (position, count) in enumerate(positions.items()):
                     with cols[i % 4]:
                         st.metric(position, count)
     
     # =============================================
-    # ENTERPRISE COMPLIANCE & STAKEHOLDER MANAGEMENT
+    # COMPLIANCE & STAKEHOLDER MANAGEMENT
     # =============================================
     
     st.markdown('<div class="section-header">Regulatory Compliance & Stakeholder Management</div>', unsafe_allow_html=True)
@@ -882,25 +956,25 @@ def show_enterprise_landing():
                 st.rerun()
     
     with col2:
-        st.subheader("Enterprise Platform Features")
+        st.subheader("Platform Features")
         st.markdown("""
         <div class="metric-card">
-        <h4>IBM Watson Integration</h4>
+        <h4>Advanced Analytics Integration</h4>
         <p>Enterprise analytics for predictive analytics and risk assessment</p>
         
-        <h4>Live Satellite Imagery</h4>
+        <h4>Satellite Imagery</h4>
         <p>Real-time geospatial analysis and terrain modeling</p>
         
-        <h4>Advanced Hydrological Modeling</h4>
+        <h4>Hydrological Modeling</h4>
         <p>Professional water flow simulation and analysis</p>
         
-        <h4>Real-Time IoT Monitoring</h4>
+        <h4>Real-Time Monitoring</h4>
         <p>Live sensor data integration and alert systems</p>
         
-        <h4>Comprehensive Jobs Analysis</h4>
+        <h4>Impact Analysis</h4>
         <p>Detailed employment impact and economic modeling</p>
         
-        <h4>Regulatory Compliance Tracking</h4>
+        <h4>Regulatory Compliance</h4>
         <p>Automated compliance monitoring across multiple agencies</p>
         
         <h4>Stakeholder Management</h4>
@@ -924,9 +998,8 @@ else:
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; color: #666; padding: 2rem;">
-    <h4>IBM Water Infrastructure Enterprise Platform</h4>
-    <p>Enterprise-Grade Water Infrastructure Intelligence • IBM Watson • Professional Engineering</p>
-    <p style="font-size: 0.9rem;">Integrated Satellite Imagery • Advanced Hydrological Modeling • Real-Time IoT Monitoring</p>
-    <p style="font-size: 0.8rem;">© 2024 IBM Corporation. Enterprise Solution. All rights reserved.</p>
+    <h4>Water Infrastructure Enterprise Platform</h4>
+    <p>Enterprise-Grade Water Infrastructure Intelligence • Advanced Analytics • Professional Engineering</p>
+    <p style="font-size: 0.9rem;">Integrated Satellite Imagery • Advanced Hydrological Modeling • Real-Time Monitoring</p>
 </div>
 """, unsafe_allow_html=True)
