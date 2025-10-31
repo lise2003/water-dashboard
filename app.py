@@ -14,15 +14,8 @@ warnings.filterwarnings("ignore")
 # Deployment-friendly configuration
 def setup_environment():
     """Handle different deployment environments"""
-    # Check if we're in Streamlit Cloud
-    if 'HOSTNAME' in os.environ and 'streamlit' in os.environ['HOSTNAME']:
-        data_path = Path("HydroTransparent")
-    else:
-        data_path = Path(__file__).parent / "HydroTransparent"
-    
-    # Create data directory if it doesn't exist
-    data_path.mkdir(exist_ok=True)
-    return data_path
+    # Files are in root directory, so return current directory
+    return Path(".")
 
 DATA_PATH = setup_environment()
 
@@ -69,17 +62,43 @@ def load_and_clean_data():
     dams = pd.DataFrame()
     
     try:
-        # Use relative paths for deployment
+        # Use direct paths since files are in root directory
         service_levels = pd.read_csv(
-            DATA_PATH / "Water Service Levels - Households_ 2025_10_08.csv", 
+            "Water Service Levels - Households_ 2025_10_08.csv", 
             encoding="ISO-8859-1"
         )
-        esk2033 = pd.read_csv(DATA_PATH / "ESK2033.csv", encoding="ISO-8859-1")
-        wash = pd.read_csv(DATA_PATH / "washdata.csv", encoding="ISO-8859-1")
+        esk2033 = pd.read_csv("ESK2033.csv", encoding="ISO-8859-1")
+        wash = pd.read_csv("washdata.csv", encoding="ISO-8859-1")
         dams = pd.read_csv(
-            DATA_PATH / "globaldamsdatabase_global_coverage_november_2020.csv", 
+            "globaldamsdatabase_global_coverage_november_2020.csv", 
             encoding="ISO-8859-1"
         )
+        
+        st.success("✅ All datasets loaded successfully")
+        
+    except FileNotFoundError as e:
+        st.error(f"❌ Data files not found: {e}")
+        # Show available files for debugging
+        import os
+        available_files = [f for f in os.listdir('.') if f.endswith('.csv')]
+        st.info(f"📁 Available CSV files: {available_files}")
+        return service_levels, esk2033, wash, dams
+    except Exception as e:
+        st.error(f"❌ Error loading datasets: {e}")
+        return service_levels, esk2033, wash, dams
+        
+        st.success("✅ All datasets loaded successfully")
+        
+    except FileNotFoundError as e:
+        st.error(f"❌ Data files not found: {e}")
+        # Show available files for debugging
+        import os
+        available_files = [f for f in os.listdir('.') if f.endswith('.csv')]
+        st.info(f"📁 Available CSV files: {available_files}")
+        return service_levels, esk2033, wash, dams
+    except Exception as e:
+        st.error(f"❌ Error loading datasets: {e}")
+        return service_levels, esk2033, wash, dams
         
         st.success("✅ All datasets loaded successfully")
         
