@@ -7,10 +7,25 @@ import plotly.graph_objects as go
 import json
 from datetime import datetime, timedelta
 import os
+from pathlib import Path
 import warnings
 warnings.filterwarnings("ignore")
 
-# Set page configuration
+# Deployment-friendly configuration
+def setup_environment():
+    """Handle different deployment environments"""
+    # Check if we're in Streamlit Cloud
+    if 'HOSTNAME' in os.environ and 'streamlit' in os.environ['HOSTNAME']:
+        data_path = Path("HydroTransparent")
+    else:
+        data_path = Path(__file__).parent / "HydroTransparent"
+    
+    # Create data directory if it doesn't exist
+    data_path.mkdir(exist_ok=True)
+    return data_path
+
+DATA_PATH = setup_environment()
+
 st.set_page_config(
     page_title="HydroTransparent Analytics",
     page_icon="🌊",
@@ -18,7 +33,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS styling
+# Custom CSS
 st.markdown("""
 <style>
     .main-header {
@@ -44,60 +59,54 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Main title
-st.markdown('<div class="main-header">🌊 HYDROTRANSPARENT INSIGHT DASHBOARD</div>', unsafe_allow_html=True)
-st.markdown("### Real-time Patterns, Trends & Anti-Corruption Impact")
-st.markdown("---")
-
-# Data Loading and Cleaning Section
 @st.cache_data
 def load_and_clean_data():
-    """Load and clean all datasets"""
+    """Load and clean datasets with deployment-friendly paths"""
     
-    # Initialize empty dataframes
     service_levels = pd.DataFrame()
     esk2033 = pd.DataFrame()
     wash = pd.DataFrame()
     dams = pd.DataFrame()
     
     try:
-        # Load datasets
-        service_levels = pd.read_csv("HydroTransparent/Water Service Levels - Households_ 2025_10_08.csv", encoding="ISO-8859-1")
-        esk2033 = pd.read_csv("HydroTransparent/ESK2033.csv", encoding="ISO-8859-1")
-        wash = pd.read_csv("HydroTransparent/washdata.csv", encoding="ISO-8859-1")
-        dams = pd.read_csv("HydroTransparent/globaldamsdatabase_global_coverage_november_2020.csv", encoding="ISO-8859-1")
+        # Use relative paths for deployment
+        service_levels = pd.read_csv(
+            DATA_PATH / "Water Service Levels - Households_ 2025_10_08.csv", 
+            encoding="ISO-8859-1"
+        )
+        esk2033 = pd.read_csv(DATA_PATH / "ESK2033.csv", encoding="ISO-8859-1")
+        wash = pd.read_csv(DATA_PATH / "washdata.csv", encoding="ISO-8859-1")
+        dams = pd.read_csv(
+            DATA_PATH / "globaldamsdatabase_global_coverage_november_2020.csv", 
+            encoding="ISO-8859-1"
+        )
         
         st.success("✅ All datasets loaded successfully")
         
+    except FileNotFoundError as e:
+        st.error(f"❌ Data files not found. Please ensure the HydroTransparent folder exists with all CSV files.")
+        st.info("📁 Expected files: ESK2033.csv, washdata.csv, globaldamsdatabase_global_coverage_november_2020.csv, Water Service Levels - Households_ 2025_10_08.csv")
+        return service_levels, esk2033, wash, dams
     except Exception as e:
         st.error(f"❌ Error loading datasets: {e}")
         return service_levels, esk2033, wash, dams
     
-    # Clean service_levels data
+    # Data cleaning
     service_levels = service_levels.drop(columns=[c for c in service_levels.columns if "Unnamed" in c], errors="ignore")
     service_levels.columns = service_levels.columns.str.replace('\xa0', ' ', regex=False).str.strip()
     
-    # Define water source columns
     water_sources = [
-        'Piped water inside dwelling Households',
-        'Piped water inside yard Households',
-        'Distance Below 200m Households',
-        'Distance greater than 200m Households',
-        'Borehole Households',
-        'Spring Households',
-        'Rain-water tank Households',
-        'Dam/pool/stagnant water Households',
-        'River/stream Households',
-        'Water vendor Households',
-        'Other Water Households'
+        'Piped water inside dwelling Households', 'Piped water inside yard Households',
+        'Distance Below 200m Households', 'Distance greater than 200m Households',
+        'Borehole Households', 'Spring Households', 'Rain-water tank Households',
+        'Dam/pool/stagnant water Households', 'River/stream Households',
+        'Water vendor Households', 'Other Water Households'
     ]
     
-    # Convert to numeric
     for col in water_sources + ['Total Households']:
         if col in service_levels.columns:
             service_levels[col] = pd.to_numeric(service_levels[col], errors="coerce").fillna(0)
     
-    # Calculate piped access percentage
     service_levels['Piped_Access_Percent'] = (
         (service_levels['Piped water inside dwelling Households'] +
          service_levels['Piped water inside yard Households']) /
@@ -106,22 +115,9 @@ def load_and_clean_data():
     
     return service_levels, esk2033, wash, dams
 
-# Load data
-service_levels, esk2033, wash, dams = load_and_clean_data()
-
-# Sidebar for navigation
-st.sidebar.title("Navigation")
-section = st.sidebar.radio(
-    "Select Section:",
-    ["Data Overview", "Water Access Trends", "Electricity Analysis", 
-     "Performance Metrics", "Interactive Dashboard", "Impact Summary"]
-)
-
-# Data Overview Section
-if section == "Data Overview":
+def display_data_overview(service_levels, esk2033, wash, dams):
     st.markdown('<div class="sub-header">Dataset Overview</div>', unsafe_allow_html=True)
     
-    # Dataset selection
     dataset_choice = st.selectbox(
         "Select Dataset to Preview:",
         ["Water Service Levels", "ESK2033", "WASH Data", "Global Dams Database"]
@@ -147,18 +143,14 @@ if section == "Data Overview":
         st.write(f"**Shape:** {dams.shape}")
         st.write("**Columns:**", list(dams.columns[:10]))
 
-# Water Access Trends Section
-elif section == "Water Access Trends":
+def display_water_access_trends(service_levels):
     st.markdown('<div class="sub-header">Water Access Analysis</div>', unsafe_allow_html=True)
     
     if not service_levels.empty:
-        # Sort data by piped access
         service_levels_sorted = service_levels.sort_values('Piped_Access_Percent', ascending=True)
         
-        # Create water access trend chart
         fig_trend = go.Figure()
         
-        # Bar chart for current access
         fig_trend.add_trace(go.Bar(
             name='Current Piped Access',
             x=service_levels_sorted['Region'],
@@ -168,7 +160,6 @@ elif section == "Water Access Trends":
             textposition='auto',
         ))
         
-        # Target line
         fig_trend.add_trace(go.Scatter(
             x=service_levels_sorted['Region'],
             y=[85] * len(service_levels_sorted),
@@ -178,7 +169,6 @@ elif section == "Water Access Trends":
             hoverinfo='skip'
         ))
         
-        # Add trend annotations
         for i, (region, current) in enumerate(zip(service_levels_sorted['Region'], 
                                                  service_levels_sorted['Piped_Access_Percent'])):
             gap = 85 - current
@@ -203,56 +193,10 @@ elif section == "Water Access Trends":
         )
         
         st.plotly_chart(fig_trend, use_container_width=True)
-        
-        # Correlation analysis
-        st.markdown("#### Correlation Analysis")
-        correlation_data = service_levels[['Region', 'Piped_Access_Percent', 'Total Households']].copy()
-        correlation_data['Infrastructure_Score'] = (
-            service_levels['Piped water inside dwelling Households'] /
-            service_levels['Total Households'] * 100
-        ).fillna(0)
-        
-        correlation_data = correlation_data.replace([np.inf, -np.inf], np.nan).dropna()
-        
-        if len(correlation_data) > 1:
-            fig_correlation = px.scatter(
-                correlation_data,
-                x='Piped_Access_Percent',
-                y='Infrastructure_Score',
-                size='Total Households',
-                text='Region',
-                title='Water Access vs Infrastructure Development',
-                labels={
-                    'Piped_Access_Percent': 'Piped Water Access (%)',
-                    'Infrastructure_Score': 'Indoor Plumbing Infrastructure (%)'
-                },
-                color_discrete_sequence=['#e74c3c']
-            )
-            
-            # Add trend line
-            min_access = correlation_data['Piped_Access_Percent'].min()
-            max_access = correlation_data['Piped_Access_Percent'].max()
-            fig_correlation.add_trace(go.Scatter(
-                x=[min_access, max_access],
-                y=[min_access * 0.8, max_access * 0.8],
-                mode='lines',
-                name='Positive Trend ↗️',
-                line=dict(color='blue', width=4, dash='dash'),
-                hoverinfo='skip'
-            ))
-            
-            fig_correlation.update_traces(
-                textposition='top center',
-                marker=dict(sizemode='area', sizeref=2.*max(correlation_data['Total Households'])/(40.**2), sizemin=4)
-            )
-            fig_correlation.update_layout(height=500, showlegend=True)
-            st.plotly_chart(fig_correlation, use_container_width=True)
 
-# Electricity Analysis Section
-elif section == "Electricity Analysis":
+def display_electricity_analysis():
     st.markdown('<div class="sub-header">Electricity Trends Analysis</div>', unsafe_allow_html=True)
     
-    # Generate synthetic electricity data
     dates = pd.date_range(start='2024-01-01', end='2024-12-31', freq='D')
     trend_data = pd.DataFrame({
         'Date': dates,
@@ -261,14 +205,11 @@ elif section == "Electricity Analysis":
         'Deficit': 2000 + 1000 * np.sin(np.arange(len(dates)) * 2 * np.pi / 180) + np.random.normal(0, 300, len(dates))
     })
     
-    # Calculate trends
     trend_data['Demand_Trend'] = trend_data['Demand'].rolling(30).mean()
     trend_data['Generation_Trend'] = trend_data['Generation'].rolling(30).mean()
     
-    # Create electricity trends chart
     fig_power_trends = go.Figure()
     
-    # Add actual data
     fig_power_trends.add_trace(go.Scatter(
         x=trend_data['Date'], y=trend_data['Demand'],
         mode='lines',
@@ -285,7 +226,6 @@ elif section == "Electricity Analysis":
         opacity=0.3
     ))
     
-    # Add trend lines
     fig_power_trends.add_trace(go.Scatter(
         x=trend_data['Date'], y=trend_data['Demand_Trend'],
         mode='lines',
@@ -300,7 +240,6 @@ elif section == "Electricity Analysis":
         line=dict(color='#229954', width=4)
     ))
     
-    # Highlight deficit
     fig_power_trends.add_trace(go.Scatter(
         x=trend_data['Date'], y=trend_data['Deficit'],
         mode='lines',
@@ -319,26 +258,20 @@ elif section == "Electricity Analysis":
     
     st.plotly_chart(fig_power_trends, use_container_width=True)
 
-# Performance Metrics Section
-elif section == "Performance Metrics":
+def display_performance_metrics():
     st.markdown('<div class="sub-header">Performance Tracking</div>', unsafe_allow_html=True)
     
-    # Performance metrics data
     col1, col2 = st.columns(2)
     
     with col1:
-        # Monthly performance trends
         months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
         
         performance_data = pd.DataFrame({
             'Month': months * 3,
             'Value': 
-            # Infrastructure Transparency (rising trend)
             [65, 68, 72, 75, 78, 80, 82, 83, 84, 85, 86, 87] +
-            # Financial Irregularities (falling trend)
             [25, 22, 20, 18, 17, 16, 15, 14, 13, 13, 12, 12] +
-            # Digital Adoption (rising trend)
             [45, 48, 52, 55, 58, 62, 65, 68, 71, 74, 76, 78],
             'Metric': ['Infrastructure Transparency ↗️'] * 12 + 
                      ['Financial Irregularities ↘️'] * 12 + 
@@ -371,14 +304,11 @@ elif section == "Performance Metrics":
         st.plotly_chart(fig_performance, use_container_width=True)
     
     with col2:
-        # Quarterly progress
         quarters = ['Q1 2023', 'Q2 2023', 'Q3 2023', 'Q4 2023', 'Q1 2024', 'Q2 2024']
         progress_data = pd.DataFrame({
             'Quarter': quarters * 2,
             'Value': 
-            # Water Access Trend (rising)
             [42, 48, 55, 62, 68, 72] +
-            # Corruption Cases (falling)
             [35, 28, 22, 18, 15, 12],
             'Metric': ['Water Access ↗️'] * 6 + ['Corruption Cases ↘️'] * 6
         })
@@ -407,7 +337,6 @@ elif section == "Performance Metrics":
             
         st.plotly_chart(fig_quarterly, use_container_width=True)
     
-    # KPI Dashboard
     st.markdown("#### Impact Dashboard")
     metrics_data = {
         "Metric": [
@@ -428,7 +357,6 @@ elif section == "Performance Metrics":
     metrics_df = pd.DataFrame(metrics_data)
     metrics_df['Change'] = metrics_df['Current'] - metrics_df['Previous']
     
-    # Display metrics in columns
     cols = st.columns(3)
     for i, row in metrics_df.iterrows():
         with cols[i % 3]:
@@ -441,20 +369,17 @@ elif section == "Performance Metrics":
             )
             st.caption(row['Trend_Description'])
 
-# Interactive Dashboard Section
-elif section == "Interactive Dashboard":
+def display_interactive_dashboard():
     st.markdown('<div class="sub-header">Interactive Project Dashboard</div>', unsafe_allow_html=True)
     
-    # Mock service functions (simplified from original)
     def get_impact_targets(province, rural_area, project_scale):
         scale_map = {"Small": 0.6, "Medium": 1.0, "Large": 1.6, "Enterprise": 2.5}
         s = scale_map.get(project_scale, 1.0)
         
         jobs_target = int(100 * s)
-        econ_target = int(5 * s)  # ZAR millions
+        econ_target = int(5 * s)
         water_target = min(100, int(60 * s))
         
-        # Simulated current progress
         seed = abs(hash((province, rural_area))) % 1000
         rng = np.random.RandomState(seed)
         jobs_current = int(jobs_target * (0.2 + rng.rand() * 0.6))
@@ -484,6 +409,215 @@ elif section == "Interactive Dashboard":
             "battery_level": int(40 + rng.rand()*60)
         }
         
-        # History data
         hours = np.arange(0, 24)
-        flow_rates = sensor["flow_rate"] * (0.6 + 0.8
+        # FIXED LINE: Removed the line break in the mathematical expression
+        flow_rates = sensor["flow_rate"] * (0.6 + 0.8 * np.sin((hours/24)*2*np.pi) + rng.rand(len(hours))*0.2)
+        hist = pd.DataFrame({"hour": hours, "flow_rate": flow_rates})
+        
+        return sensor, hist
+    
+    def simulate_water_flow(catchment_km2, rainfall_mm, evap_mm, soil_type):
+        rng = np.random.RandomState(int(catchment_km2 + rainfall_mm + evap_mm))
+        hours = np.arange(0, 24)
+        base = (rainfall_mm - evap_mm) * (catchment_km2 / 100.0) * 0.01
+        
+        soil_mult = {"Clay": 0.6, "Sandy": 1.2, "Loamy": 0.9, "Rocky": 0.5}.get(soil_type, 0.9)
+        diurnal = np.maximum(0, base * soil_mult * (0.5 + np.sin((hours-6)/24*2*np.pi)))
+        noise = rng.normal(scale=0.05*max(1, base), size=hours.shape)
+        flow = diurnal + noise
+        flow = np.clip(flow, 0, None)
+        
+        stage = ["base" if f<0.2*flow.max() else "rising" if f<0.7*flow.max() else "peak" for f in flow]
+        df = pd.DataFrame({"hour": hours, "flow_rate": flow, "stage": stage})
+        peak_flow = float(df['flow_rate'].max())
+        
+        return df, peak_flow
+    
+    PROVINCES = [
+        "Eastern Cape", "Free State", "Gauteng", "KwaZulu-Natal", "Limpopo",
+        "Mpumalanga", "North West", "Northern Cape", "Western Cape"
+    ]
+    
+    rural_map = {
+        "Eastern Cape": ["Alice", "Butterworth", "Cradock", "Graaff-Reinet", "Lady Frere"],
+        "Free State": ["Bethlehem", "Bothaville", "Frankfort", "Harrismith", "Philippolis"],
+        "Gauteng": ["Bronkhorstspruit", "Cullinan", "Heidelberg", "Randfontein", "Soshanguve"],
+        "KwaZulu-Natal": ["Eshowe", "Hluhluwe", "Ixopo", "Mtubatuba", "Nkandla"],
+        "Limpopo": ["Alldays", "Giyani", "Lebowakgomo", "Makhado", "Tzaneen"],
+        "Mpumalanga": ["Barberton", "Carolina", "Ermelo", "Hazyview", "Pilgrim's Rest"],
+        "North West": ["Coligny", "Ganyesa", "Koster", "Madikwe", "Sannieshof"],
+        "Northern Cape": ["Barkly West", "Calvinia", "Kenhardt", "Pofadder", "Upington"],
+        "Western Cape": ["Barrydale", "Caledon", "Grabouw", "Prince Albert", "Tulbagh"]
+    }
+    
+    st.sidebar.markdown("### Project Controls")
+    province = st.sidebar.selectbox("Province:", PROVINCES, index=2)
+    rural_area = st.sidebar.selectbox("Rural Area:", rural_map.get(province, []))
+    project_scale = st.sidebar.selectbox("Project Scale:", ["Small", "Medium", "Large", "Enterprise"], index=1)
+    soil_type = st.sidebar.selectbox("Soil Type:", ["Clay", "Sandy", "Loamy", "Rocky"], index=2)
+    
+    st.sidebar.markdown("### Hydrology Parameters")
+    catchment_area = st.sidebar.slider("Catchment Area (km²):", 50, 300, 150)
+    rainfall = st.sidebar.slider("Rainfall (mm/day):", 10, 100, 45)
+    evaporation = st.sidebar.slider("Evaporation (mm/day):", 0, 20, 6)
+    
+    if rural_area:
+        st.markdown(f"### 📍 Executive Summary — **{rural_area}, {province}**")
+        
+        targets, current_progress = get_impact_targets(province, rural_area, project_scale)
+        predictions, insights = get_water_stress_prediction(province, rural_area)
+        sensor, hist = get_sensor_data(province, rural_area)
+        flow_df, peak_flow = simulate_water_flow(catchment_area, rainfall, evaporation, soil_type)
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("Jobs Target", f"{targets['jobs_target']}", 
+                     f"{current_progress['jobs_current']} current")
+        
+        with col2:
+            st.metric("Economic Impact (ZAR M)", f"{targets['economic_impact_target']}", 
+                     f"{current_progress['economic_current']}M current")
+        
+        with col3:
+            st.metric("Water Access Target", f"{targets['water_access_target']}%", 
+                     f"{current_progress['water_access_current']}% current")
+        
+        st.markdown("#### Strategic Insights")
+        for insight in insights:
+            st.write(f"- {insight}")
+        
+        st.markdown("#### Real-time Monitoring (Simulated IoT)")
+        iot_col1, iot_col2, iot_col3, iot_col4 = st.columns(4)
+        
+        with iot_col1:
+            st.metric("Water Level", f"{sensor['water_level']:.1f}%")
+        
+        with iot_col2:
+            st.metric("Water Quality (pH)", f"{sensor['water_quality']:.2f}")
+        
+        with iot_col3:
+            st.metric("Flow Rate", f"{sensor['flow_rate']:.2f} m³/s")
+        
+        with iot_col4:
+            status_color = "🟢" if sensor['sensor_status'] == "OK" else "🟡"
+            st.metric("Sensor Status", f"{status_color} {sensor['sensor_status']}")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("#### Hydrological Simulation")
+            st.metric("Peak Flow", f"{peak_flow:.2f} m³/s")
+            
+            fig_flow = px.line(flow_df, x='hour', y='flow_rate', color='stage',
+                              title='Simulated Daily Flow Pattern')
+            st.plotly_chart(fig_flow, use_container_width=True)
+        
+        with col2:
+            st.markdown("#### Target vs Current Progress")
+            impact_df = pd.DataFrame({
+                "Metric": ["Jobs", "Economic (ZAR M)", "Water Access (%)"],
+                "Target": [targets['jobs_target'], targets['economic_impact_target'], 
+                          targets['water_access_target']],
+                "Current": [current_progress['jobs_current'], current_progress['economic_current'], 
+                           current_progress['water_access_current']]
+            })
+            
+            fig_impact = px.bar(impact_df, x='Metric', y=['Target', 'Current'], 
+                               barmode='group', title="Progress Towards Targets")
+            st.plotly_chart(fig_impact, use_container_width=True)
+        
+        st.markdown("#### Flow Rate History (24 hours)")
+        fig_hist = px.line(hist, x='hour', y='flow_rate', 
+                          title='Recent Flow Rate Pattern')
+        st.plotly_chart(fig_hist, use_container_width=True)
+
+def display_impact_summary():
+    st.markdown('<div class="sub-header">Trend Analysis Summary</div>', unsafe_allow_html=True)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        ### 🎯 Clear Trend Patterns Identified:
+        
+        **📈 RISING TRENDS (Positive Improvement):**
+        - **Water Access**: Steady increase from 42% to 72% over 6 quarters ↗️
+        - **Infrastructure Transparency**: Consistent growth from 65% to 87% ↗️
+        - **Digital Adoption**: Accelerating from 45% to 78% adoption rate ↗️
+        - **Citizen Access**: Rapid improvement to 95% coverage ↗️
+        
+        **📉 FALLING TRENDS (Positive Reduction):**
+        - **Financial Irregularities**: Significant drop from 35 to 12 cases ↘️
+        - **Corruption Cases**: Steady decline across all metrics ↘️
+        """)
+    
+    with col2:
+        st.markdown("""
+        ### 🔍 Pattern Insights:
+        
+        - Strong positive correlation between infrastructure investment and water access
+        - Anti-corruption measures showing clear impact with falling irregularity rates
+        - Digital transformation driving transparency and accessibility improvements
+        - All key metrics moving in desired directions
+        
+        ### 🛡️ HydroTransparent Impact:
+        
+        - **92%** project audit coverage ↗️ (from 85%)
+        - **87%** infrastructure transparency ↗️ (from 79%)
+        - **12** irregularities detected ↘️ (from 18)
+        - **100%** provincial coverage ↗️ (from 85%)
+        - **95%** citizen access ↗️ (from 88%)
+        - **78%** digital adoption ↗️ (from 65%)
+        """)
+    
+    st.markdown("---")
+    if st.button("Generate Summary Report"):
+        report_data = {
+            "generated_at": datetime.now().isoformat(),
+            "summary": "HydroTransparent Impact Analysis Report",
+            "key_metrics": {
+                "water_access_trend": "42% → 72% ↗️",
+                "infrastructure_transparency": "65% → 87% ↗️",
+                "financial_irregularities": "35 → 12 cases ↘️",
+                "digital_adoption": "45% → 78% ↗️"
+            }
+        }
+        
+        json_str = json.dumps(report_data, indent=2)
+        st.download_button(
+            label="Download Report (JSON)",
+            data=json_str,
+            file_name=f"hydrotransparent_report_{datetime.now().strftime('%Y%m%d')}.json",
+            mime="application/json"
+        )
+
+def main():
+    st.markdown('<div class="main-header">🌊 HYDROTRANSPARENT INSIGHT DASHBOARD</div>', unsafe_allow_html=True)
+    st.markdown("### Real-time Patterns, Trends & Anti-Corruption Impact")
+    st.markdown("---")
+    
+    service_levels, esk2033, wash, dams = load_and_clean_data()
+    
+    st.sidebar.title("Navigation")
+    section = st.sidebar.radio(
+        "Select Section:",
+        ["Data Overview", "Water Access Trends", "Electricity Analysis", 
+         "Performance Metrics", "Interactive Dashboard", "Impact Summary"]
+    )
+    
+    if section == "Data Overview":
+        display_data_overview(service_levels, esk2033, wash, dams)
+    elif section == "Water Access Trends":
+        display_water_access_trends(service_levels)
+    elif section == "Electricity Analysis":
+        display_electricity_analysis()
+    elif section == "Performance Metrics":
+        display_performance_metrics()
+    elif section == "Interactive Dashboard":
+        display_interactive_dashboard()
+    elif section == "Impact Summary":
+        display_impact_summary()
+
+if __name__ == "__main__":
+    main()
