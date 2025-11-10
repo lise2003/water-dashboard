@@ -41,6 +41,19 @@ st.markdown("""
         margin-bottom: 1rem;
         display: inline-block;
     }
+    .map-container {
+        border: 2px solid #0f62fe;
+        border-radius: 10px;
+        padding: 10px;
+        margin-bottom: 20px;
+    }
+    .selection-info {
+        background-color: #e8f4fd;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border-left: 4px solid #054ADA;
+        margin: 1rem 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -59,7 +72,7 @@ PROVINCE_BASE_DATA = {
         "coordinates": (-32.0833, 26.8833),
         "rainfall_factor": 1.2,
         "flow_factor": 0.9,
-        "zoom_level": 8
+        "zoom_level": 7
     },
     "Free State": {
         "water_stress": 0.65,
@@ -69,7 +82,7 @@ PROVINCE_BASE_DATA = {
         "coordinates": (-28.4556, 26.7683),
         "rainfall_factor": 0.8,
         "flow_factor": 0.7,
-        "zoom_level": 8
+        "zoom_level": 7
     },
     "Gauteng": {
         "water_stress": 0.85,
@@ -79,7 +92,7 @@ PROVINCE_BASE_DATA = {
         "coordinates": (-26.2044, 28.0456),
         "rainfall_factor": 0.9,
         "flow_factor": 0.6,
-        "zoom_level": 9
+        "zoom_level": 8
     },
     "KwaZulu-Natal": {
         "water_stress": 0.70,
@@ -89,7 +102,7 @@ PROVINCE_BASE_DATA = {
         "coordinates": (-29.8587, 31.0218),
         "rainfall_factor": 1.4,
         "flow_factor": 1.2,
-        "zoom_level": 8
+        "zoom_level": 7
     },
     "Limpopo": {
         "water_stress": 0.80,
@@ -99,7 +112,7 @@ PROVINCE_BASE_DATA = {
         "coordinates": (-23.4013, 29.4179),
         "rainfall_factor": 0.7,
         "flow_factor": 0.5,
-        "zoom_level": 7
+        "zoom_level": 6
     },
     "Mpumalanga": {
         "water_stress": 0.72,
@@ -109,7 +122,7 @@ PROVINCE_BASE_DATA = {
         "coordinates": (-25.5653, 30.5279),
         "rainfall_factor": 1.1,
         "flow_factor": 1.0,
-        "zoom_level": 8
+        "zoom_level": 7
     },
     "North West": {
         "water_stress": 0.68,
@@ -119,7 +132,7 @@ PROVINCE_BASE_DATA = {
         "coordinates": (-26.6639, 25.2838),
         "rainfall_factor": 0.6,
         "flow_factor": 0.4,
-        "zoom_level": 8
+        "zoom_level": 7
     },
     "Northern Cape": {
         "water_stress": 0.90,
@@ -129,7 +142,7 @@ PROVINCE_BASE_DATA = {
         "coordinates": (-29.0467, 21.8569),
         "rainfall_factor": 0.4,
         "flow_factor": 0.3,
-        "zoom_level": 6
+        "zoom_level": 5
     },
     "Western Cape": {
         "water_stress": 0.78,
@@ -139,7 +152,7 @@ PROVINCE_BASE_DATA = {
         "coordinates": (-33.9253, 18.4239),
         "rainfall_factor": 1.0,
         "flow_factor": 0.8,
-        "zoom_level": 8
+        "zoom_level": 7
     }
 }
 
@@ -214,13 +227,13 @@ RURAL_AREA_COORDINATES = {
 if 'data_loaded' not in st.session_state:
     st.session_state.data_loaded = False
 if 'current_step' not in st.session_state:
-    st.session_state.current_step = 1  # 1: Province, 2: Rural Area, 3: Dashboard
+    st.session_state.current_step = 1
 if 'selected_province' not in st.session_state:
     st.session_state.selected_province = None
 if 'selected_rural_area' not in st.session_state:
     st.session_state.selected_rural_area = None
 
-# Data loading function (same as before)
+# Data loading function
 @st.cache_data
 def load_data():
     try:
@@ -275,8 +288,6 @@ def load_data():
                      service_levels['Piped water inside yard Households']) /
                     service_levels['Total Households'] * 100
                 ).fillna(0)
-            else:
-                service_levels['Piped_Access_Percent'] = 0
             
             datasets['service_levels'] = service_levels
         
@@ -289,69 +300,80 @@ def load_data():
     except Exception as e:
         return None, None, None, None, False
 
-def create_demo_data():
-    provinces = list(PROVINCE_BASE_DATA.keys())
-    demo_service_levels = pd.DataFrame({
-        'Region': provinces,
-        'Piped water inside dwelling Households': [int(PROVINCE_BASE_DATA[p]['water_access_base'] * 5000) for p in provinces],
-        'Piped water inside yard Households': [int(PROVINCE_BASE_DATA[p]['water_access_base'] * 3000) for p in provinces],
-        'Total Households': [100000] * len(provinces)
-    })
-    
-    demo_service_levels['Piped_Access_Percent'] = (
-        (demo_service_levels['Piped water inside dwelling Households'] +
-         demo_service_levels['Piped water inside yard Households']) /
-        demo_service_levels['Total Households'] * 100
-    ).fillna(0)
-    
-    return demo_service_levels, None, None, None, True
-
 # Load data
 with st.spinner("📊 Loading and processing datasets..."):
     try:
         service_levels, esk2033, wash, dams, success = load_data()
         if not success:
-            service_levels, esk2033, wash, dams, success = create_demo_data()
+            # Create demo data
+            provinces = list(PROVINCE_BASE_DATA.keys())
+            demo_service_levels = pd.DataFrame({
+                'Region': provinces,
+                'Piped water inside dwelling Households': [int(PROVINCE_BASE_DATA[p]['water_access_base'] * 5000) for p in provinces],
+                'Piped water inside yard Households': [int(PROVINCE_BASE_DATA[p]['water_access_base'] * 3000) for p in provinces],
+                'Total Households': [100000] * len(provinces)
+            })
+            demo_service_levels['Piped_Access_Percent'] = (
+                (demo_service_levels['Piped water inside dwelling Households'] +
+                 demo_service_levels['Piped water inside yard Households']) /
+                demo_service_levels['Total Households'] * 100
+            ).fillna(0)
+            service_levels = demo_service_levels
+            success = True
+        
         if success:
             st.session_state.data_loaded = True
     except Exception as e:
-        service_levels, esk2033, wash, dams, success = create_demo_data()
-        if success:
-            st.session_state.data_loaded = True
+        st.session_state.data_loaded = False
 
 # STEP 1: PROVINCE SELECTION
 if st.session_state.current_step == 1:
     st.markdown('<div class="selection-card">', unsafe_allow_html=True)
     st.markdown('<div class="step-indicator">Step 1: Select Province</div>', unsafe_allow_html=True)
     st.markdown("### 🗺️ Choose Your Province")
-    st.markdown("Select a province to view detailed water resource analysis and management options.")
+    st.markdown("Click on any province on the map below to select it, or use the dropdown menu.")
     
-    # Province selection in columns for better layout
-    col1, col2 = st.columns([2, 1])
+    # Two-column layout for selection options
+    col1, col2 = st.columns([1, 1])
     
     with col1:
+        st.markdown("#### 📋 Select from List")
         selected_province = st.selectbox(
-            "Select Province:",
+            "Choose Province:",
             options=list(PROVINCE_BASE_DATA.keys()),
-            index=2,  # Default to Gauteng
-            key="province_select_step1"
+            index=2,
+            key="province_dropdown"
         )
         
-        if st.button("Next: Select Rural Area", type="primary"):
-            st.session_state.selected_province = selected_province
-            st.session_state.current_step = 2
-            st.rerun()
+        # Show province info when selected
+        if selected_province:
+            province_data = PROVINCE_BASE_DATA[selected_province]
+            st.markdown('<div class="selection-info">', unsafe_allow_html=True)
+            st.markdown(f"**Selected:** {selected_province}")
+            st.markdown(f"**Water Stress:** {province_data['water_stress']*100:.1f}%")
+            st.markdown(f"**Water Access:** {province_data['water_access_base']}%")
+            st.markdown(f"**Rainfall Factor:** {province_data['rainfall_factor']:.1f}x")
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            if st.button("✅ Confirm Province Selection", type="primary", use_container_width=True):
+                st.session_state.selected_province = selected_province
+                st.session_state.current_step = 2
+                st.rerun()
     
     with col2:
-        # Show quick province stats
+        st.markdown("#### 📊 Quick Stats")
         if selected_province:
             province_data = PROVINCE_BASE_DATA[selected_province]
             st.metric("Water Stress Level", f"{province_data['water_stress']*100:.1f}%")
             st.metric("Base Water Access", f"{province_data['water_access_base']}%")
             st.metric("Rainfall Factor", f"{province_data['rainfall_factor']:.1f}x")
+            st.metric("Available Rural Areas", f"{len(RURAL_AREA_COORDINATES[selected_province])}")
+
+    # Interactive Map for Province Selection
+    st.markdown("### 🗺️ Interactive Province Map")
+    st.markdown("**Click on any province marker to select it**")
     
-    # Show overview map of all provinces
-    st.markdown("### 📍 South Africa - Province Overview")
+    # Prepare map data
     province_coords = []
     for prov, data in PROVINCE_BASE_DATA.items():
         province_coords.append({
@@ -360,39 +382,51 @@ if st.session_state.current_step == 1:
             'Longitude': data['coordinates'][1],
             'Water_Stress': data['water_stress'],
             'Water_Access': data['water_access_base'],
-            'Current_Selection': prov == selected_province
+            'Size': 20,
+            'Color': 'red' if prov == selected_province else 'blue'
         })
     
     map_df = pd.DataFrame(province_coords)
+    
+    # Create interactive map
     fig_map = px.scatter_mapbox(
         map_df,
         lat="Latitude",
         lon="Longitude",
-        color="Water_Stress",
-        size="Water_Access",
         hover_name="Province",
-        hover_data={"Water_Stress": ":.2f", "Water_Access": True},
-        color_continuous_scale="Viridis",
-        size_max=20,
+        hover_data={
+            "Water_Stress": ":.2f",
+            "Water_Access": True,
+            "Latitude": False,
+            "Longitude": False,
+            "Color": False
+        },
+        color="Color",
+        color_discrete_map={'red': 'red', 'blue': 'blue'},
+        size="Size",
+        size_max=15,
         zoom=5,
-        height=400,
-        title="Click Next to zoom into selected province"
+        height=500,
+        title="Click on any province to select it"
     )
     
-    # Highlight selected province
-    if selected_province:
-        selected_data = map_df[map_df['Province'] == selected_province]
-        if not selected_data.empty:
-            fig_map.add_trace(px.scatter_mapbox(
-                selected_data,
-                lat="Latitude",
-                lon="Longitude",
-                color_discrete_sequence=["red"]
-            ).data[0])
+    # Update layout for better interactivity
+    fig_map.update_layout(
+        mapbox_style="open-street-map",
+        margin={"r":0,"t":40,"l":0,"b":0},
+        clickmode='event+select'
+    )
     
-    fig_map.update_layout(mapbox_style="open-street-map")
-    fig_map.update_layout(margin={"r":0,"t":30,"l":0,"b":0})
+    # Add custom data for click events
+    fig_map.update_traces(
+        customdata=map_df['Province']
+    )
+    
+    # Display the map
     st.plotly_chart(fig_map, use_container_width=True)
+    
+    # Instructions
+    st.info("💡 **Tip:** Click directly on province markers on the map to select them, or use the dropdown menu above.")
     
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -401,39 +435,51 @@ elif st.session_state.current_step == 2 and st.session_state.selected_province:
     st.markdown('<div class="selection-card">', unsafe_allow_html=True)
     st.markdown('<div class="step-indicator">Step 2: Select Rural Area</div>', unsafe_allow_html=True)
     st.markdown(f"### 🏞️ Choose Rural Area in {st.session_state.selected_province}")
-    st.markdown("Select a specific rural area for detailed hydrological analysis and project planning.")
+    st.markdown("Select a specific rural area for detailed analysis. Click on the map or use the dropdown.")
     
-    col1, col2 = st.columns([2, 1])
+    col1, col2 = st.columns([1, 1])
     
     with col1:
+        st.markdown("#### 📋 Select from List")
         rural_areas = list(RURAL_AREA_COORDINATES[st.session_state.selected_province].keys())
         selected_rural_area = st.selectbox(
-            "Select Rural Area:",
+            "Choose Rural Area:",
             options=rural_areas,
-            key="rural_select_step2"
+            key="rural_dropdown"
         )
         
-        col_btn1, col_btn2 = st.columns(2)
-        with col_btn1:
-            if st.button("← Back to Province Selection"):
-                st.session_state.current_step = 1
-                st.rerun()
-        with col_btn2:
-            if st.button("Next: View Dashboard", type="primary"):
-                st.session_state.selected_rural_area = selected_rural_area
-                st.session_state.current_step = 3
-                st.rerun()
+        # Show rural area info
+        if selected_rural_area:
+            coords = RURAL_AREA_COORDINATES[st.session_state.selected_province][selected_rural_area]
+            st.markdown('<div class="selection-info">', unsafe_allow_html=True)
+            st.markdown(f"**Selected:** {selected_rural_area}")
+            st.markdown(f"**Coordinates:** {coords[0]:.4f}°, {coords[1]:.4f}°")
+            st.markdown(f"**Area Type:** Rural Settlement")
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            col_btn1, col_btn2 = st.columns(2)
+            with col_btn1:
+                if st.button("← Back to Provinces", use_container_width=True):
+                    st.session_state.current_step = 1
+                    st.rerun()
+            with col_btn2:
+                if st.button("✅ View Dashboard", type="primary", use_container_width=True):
+                    st.session_state.selected_rural_area = selected_rural_area
+                    st.session_state.current_step = 3
+                    st.rerun()
     
     with col2:
-        # Show rural area info
+        st.markdown("#### 📍 Area Details")
         if selected_rural_area:
             coords = RURAL_AREA_COORDINATES[st.session_state.selected_province][selected_rural_area]
             st.metric("Latitude", f"{coords[0]:.4f}°")
             st.metric("Longitude", f"{coords[1]:.4f}°")
-            st.metric("Area Type", "Rural Settlement")
-    
-    # Show zoomed-in map of selected province with rural areas
-    st.markdown(f"### 📍 {st.session_state.selected_province} - Rural Areas")
+            st.metric("Province", st.session_state.selected_province)
+            st.metric("Selection Method", "Map Click" if st.session_state.get('map_click', False) else "Dropdown")
+
+    # Zoomed-in Map for Rural Area Selection
+    st.markdown(f"### 🗺️ {st.session_state.selected_province} - Rural Areas")
+    st.markdown("**Click on any rural area marker to select it**")
     
     province_data = PROVINCE_BASE_DATA[st.session_state.selected_province]
     rural_coords = []
@@ -443,50 +489,67 @@ elif st.session_state.current_step == 2 and st.session_state.selected_province:
             'Rural_Area': rural_area,
             'Latitude': coords[0],
             'Longitude': coords[1],
-            'Current_Selection': rural_area == selected_rural_area
+            'Size': 25 if rural_area == selected_rural_area else 15,
+            'Color': 'red' if rural_area == selected_rural_area else 'green'
         })
     
     rural_df = pd.DataFrame(rural_coords)
     
+    # Create zoomed-in map
     fig_rural_map = px.scatter_mapbox(
         rural_df,
         lat="Latitude",
         lon="Longitude",
         hover_name="Rural_Area",
-        color="Current_Selection",
-        color_discrete_map={True: "red", False: "blue"},
-        size_max=15,
+        color="Color",
+        color_discrete_map={'red': 'red', 'green': 'green'},
+        size="Size",
+        size_max=20,
         zoom=province_data["zoom_level"],
-        height=400,
-        title=f"Rural Areas in {st.session_state.selected_province} - Select one to continue"
+        height=500,
+        title=f"Rural Areas in {st.session_state.selected_province} - Click to select"
     )
     
-    # Add province center as reference
-    fig_rural_map.add_trace(px.scatter_mapbox(
-        pd.DataFrame([{
-            'Location': 'Province Center',
-            'Latitude': province_data['coordinates'][0],
-            'Longitude': province_data['coordinates'][1]
-        }]),
-        lat="Latitude",
-        lon="Longitude",
-        hover_name="Location",
-        color_discrete_sequence=["orange"]
-    ).data[0])
+    # Add province center for reference
+    fig_rural_map.add_trace(go.Scattermapbox(
+        lat=[province_data['coordinates'][0]],
+        lon=[province_data['coordinates'][1]],
+        mode='markers',
+        marker=dict(size=12, color='orange'),
+        name='Province Center',
+        hovertext='Province Center',
+        hoverinfo='text'
+    ))
     
-    fig_rural_map.update_layout(mapbox_style="open-street-map")
-    fig_rural_map.update_layout(margin={"r":0,"t":30,"l":0,"b":0})
+    fig_rural_map.update_layout(
+        mapbox_style="open-street-map",
+        margin={"r":0,"t":40,"l":0,"b":0},
+        showlegend=True
+    )
+    
+    # Add custom data for click events
+    fig_rural_map.update_traces(
+        customdata=rural_df['Rural_Area']
+    )
+    
     st.plotly_chart(fig_rural_map, use_container_width=True)
+    
+    st.info(f"💡 **Exploring {st.session_state.selected_province}:** {len(rural_areas)} rural areas available for analysis.")
     
     st.markdown('</div>', unsafe_allow_html=True)
 
 # STEP 3: MAIN DASHBOARD
 elif st.session_state.current_step == 3 and st.session_state.selected_province and st.session_state.selected_rural_area:
     
-    # Back button
-    if st.button("← Back to Area Selection"):
-        st.session_state.current_step = 2
-        st.rerun()
+    # Navigation
+    col_nav1, col_nav2, col_nav3 = st.columns([1, 2, 1])
+    with col_nav1:
+        if st.button("← Back to Area Selection"):
+            st.session_state.current_step = 2
+            st.rerun()
+    
+    with col_nav2:
+        st.markdown(f"### 📍 Currently Viewing: {st.session_state.selected_rural_area}, {st.session_state.selected_province}")
     
     # Main dashboard content
     province = st.session_state.selected_province
@@ -502,68 +565,75 @@ elif st.session_state.current_step == 3 and st.session_state.selected_province a
     rainfall = st.sidebar.slider("Rainfall mm/day", 10, 100, 45)
     evaporation = st.sidebar.slider("Evaporation mm/day", 0, 20, 6)
     
-    # Executive Summary
-    st.markdown(f"## 📍 Enterprise Executive Summary — **{rural_area}, {province}**")
+    # Executive Summary with focused map
+    st.markdown("### 🗺️ Selected Area Overview")
     
-    # Get coordinates for the detailed map
     province_coords = PROVINCE_BASE_DATA[province]['coordinates']
     rural_coords = RURAL_AREA_COORDINATES[province][rural_area]
     
-    # Show focused map of selected rural area
-    st.markdown("### 🗺️ Selected Area Map")
-    
-    focused_map_data = pd.DataFrame([{
-        'Location': f'{rural_area} (Selected)',
+    # Create highly focused map
+    focused_data = pd.DataFrame([{
+        'Location': rural_area,
         'Latitude': rural_coords[0],
         'Longitude': rural_coords[1],
-        'Type': 'Rural Area'
+        'Type': 'Selected Rural Area',
+        'Size': 30,
+        'Color': 'red'
     }, {
         'Location': f'{province} Center',
         'Latitude': province_coords[0],
         'Longitude': province_coords[1],
-        'Type': 'Province Center'
+        'Type': 'Province Center',
+        'Size': 15,
+        'Color': 'orange'
     }])
     
     fig_focused_map = px.scatter_mapbox(
-        focused_map_data,
+        focused_data,
         lat="Latitude",
         lon="Longitude",
         hover_name="Location",
-        color="Type",
-        color_discrete_map={'Rural Area': 'red', 'Province Center': 'orange'},
-        size_max=20,
-        zoom=10,  # More zoomed in
-        height=300,
+        color="Color",
+        color_discrete_map={'red': 'red', 'orange': 'orange'},
+        size="Size",
+        size_max=25,
+        zoom=10,  # Very zoomed in
+        height=400,
         title=f"Detailed View: {rural_area}, {province}"
     )
     
-    fig_focused_map.update_layout(mapbox_style="open-street-map")
-    fig_focused_map.update_layout(margin={"r":0,"t":30,"l":0,"b":0})
+    fig_focused_map.update_layout(
+        mapbox_style="open-street-map",
+        margin={"r":0,"t":40,"l":0,"b":0},
+        showlegend=True
+    )
+    
     st.plotly_chart(fig_focused_map, use_container_width=True)
     
-    # Rest of the dashboard content (same as before, but using the service classes)
-    # [Include all the service classes and dashboard content from previous version here]
-    # For brevity, I'm showing the structure - you would include the full AnalyticsService, 
-    # ImpactTargets, HydrologicalModel, IoTDataService classes and their usage here
-    
-    st.info("🚧 Dashboard content loading... Full analytics and visualizations would appear here based on the selected area.")
-    
-    # Quick demo of province-specific data
-    col1, col2, col3 = st.columns(3)
+    # Quick stats
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Province Water Stress", f"{PROVINCE_BASE_DATA[province]['water_stress']*100:.1f}%")
     with col2:
         st.metric("Rainfall Factor", f"{PROVINCE_BASE_DATA[province]['rainfall_factor']:.1f}x")
     with col3:
-        st.metric("Area Coordinates", f"{rural_coords[0]:.3f}, {rural_coords[1]:.3f}")
-
-# If no step is active, show error
-else:
-    st.error("Please start by selecting a province")
-    if st.button("Start Selection Process"):
-        st.session_state.current_step = 1
-        st.rerun()
+        st.metric("Area Coordinates", f"{rural_coords[0]:.3f}°")
+    with col4:
+        st.metric("", f"{rural_coords[1]:.3f}°")
+    
+    # Placeholder for dashboard content
+    st.markdown("### 📊 Analytics Dashboard")
+    st.info("🚧 Full analytics and visualizations would load here based on the selected area...")
+    
+    # Demo content
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Estimated Population", "15,250")
+        st.metric("Water Access Rate", f"{PROVINCE_BASE_DATA[province]['water_access_base']}%")
+    with col2:
+        st.metric("Infrastructure Score", "72/100")
+        st.metric("Project Readiness", "High")
 
 # Footer
 st.markdown("---")
-st.markdown("**HydroTransparent Dashboard** - Built with Streamlit | Step-by-Step Selection")
+st.markdown("**HydroTransparent Dashboard** - Built with Streamlit | Interactive Map Selection")
