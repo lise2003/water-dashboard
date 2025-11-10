@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
 import json
@@ -23,11 +22,6 @@ st.markdown("""
         font-size: 2.5rem;
         color: #0f62fe;
         text-align: center;
-        margin-bottom: 1rem;
-    }
-    .sub-header {
-        font-size: 1.5rem;
-        color: #393939;
         margin-bottom: 1rem;
     }
     .metric-card {
@@ -54,10 +48,11 @@ if 'data_loaded' not in st.session_state:
 def load_data():
     """Load and cache all datasets"""
     try:
-        service_levels = pd.read_csv("HydroTransparent/Water Service Levels - Households_ 2025_10_08.csv", encoding="ISO-8859-1")
-        esk2033 = pd.read_csv("HydroTransparent/ESK2033.csv", encoding="ISO-8859-1")
-        wash = pd.read_csv("HydroTransparent/washdata.csv", encoding="ISO-8859-1")
-        dams = pd.read_csv("HydroTransparent/globaldamsdatabase_global_coverage_november_2020.csv", encoding="ISO-8859-1")
+        # Updated file paths - files are in root directory, not HydroTransparent folder
+        service_levels = pd.read_csv("Water Service Levels - Households_2025_10_08.csv", encoding="ISO-8859-1")
+        esk2033 = pd.read_csv("ESK2033.csv", encoding="ISO-8859-1")
+        wash = pd.read_csv("washdata.csv", encoding="ISO-8859-1")
+        dams = pd.read_csv("globaldamsdatabase_global_coverage_november_2020.csv", encoding="ISO-8859-1")
         
         # Clean service levels data
         service_levels = service_levels.drop(columns=[c for c in service_levels.columns if "Unnamed" in c], errors="ignore")
@@ -102,10 +97,22 @@ with st.spinner("📊 Loading and processing datasets..."):
     if success:
         st.session_state.data_loaded = True
         st.success("✅ All datasets loaded successfully")
+        
+        # Show dataset info
+        with st.expander("📁 Dataset Information"):
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("Service Levels", f"{service_levels.shape[0]} rows")
+            with col2:
+                st.metric("ESK2033", f"{esk2033.shape[0]} rows")
+            with col3:
+                st.metric("WASH Data", f"{wash.shape[0]} rows")
+            with col4:
+                st.metric("Dams Database", f"{dams.shape[0]} rows")
     else:
         st.error("❌ Failed to load datasets")
 
-# Mock service classes (converted from original classes)
+# Mock service classes
 class AnalyticsService:
     @staticmethod
     def get_water_stress_prediction(province, rural_area):
@@ -224,7 +231,7 @@ rural_map = {
     "Western Cape": ["Barrydale", "Caledon", "Grabouw", "Prince Albert", "Tulbagh"]
 }
 
-province = st.sidebar.selectbox("Province:", PROVINCES, index=2)  # Default to Gauteng
+province = st.sidebar.selectbox("Province:", PROVINCES, index=2)
 rural_area = st.sidebar.selectbox("Rural area:", rural_map.get(province, []))
 project_scale = st.sidebar.selectbox("Project scale:", ["Small", "Medium", "Large", "Enterprise"], index=1)
 
@@ -306,44 +313,43 @@ if st.session_state.data_loaded:
                        barmode='group', title="Target vs Current Impact")
     st.plotly_chart(fig_impact, use_container_width=True)
     
-    # Water Access Trends
-    if service_levels is not None:
-        st.markdown("### 💧 Water Access Trends by Province")
-        
-        # Sort by piped access
-        service_levels_sorted = service_levels.sort_values('Piped_Access_Percent', ascending=True)
-        
-        fig_trend = go.Figure()
-        fig_trend.add_trace(go.Bar(
-            name='Current Piped Access',
-            x=service_levels_sorted['Region'],
-            y=service_levels_sorted['Piped_Access_Percent'],
-            marker_color='lightblue',
-            text=service_levels_sorted['Piped_Access_Percent'].round(1),
-            textposition='auto',
-        ))
-        
-        # Add target line
-        fig_trend.add_trace(go.Scatter(
-            x=service_levels_sorted['Region'],
-            y=[85] * len(service_levels_sorted),
-            mode='lines',
-            name='HydroTransparent Target (85%)',
-            line=dict(color='red', width=3, dash='dash'),
-            hoverinfo='skip'
-        ))
-        
-        fig_trend.update_layout(
-            title='Water Access by Province vs Target',
-            xaxis_title='Province',
-            yaxis_title='Piped Water Access (%)',
-            xaxis_tickangle=-45,
-            height=500,
-            showlegend=True,
-            yaxis=dict(range=[0, 100])
-        )
-        
-        st.plotly_chart(fig_trend, use_container_width=True)
+    # Water Access Trends from actual data
+    st.markdown("### 💧 Water Access Trends by Province")
+    
+    # Sort by piped access
+    service_levels_sorted = service_levels.sort_values('Piped_Access_Percent', ascending=True)
+    
+    fig_trend = go.Figure()
+    fig_trend.add_trace(go.Bar(
+        name='Current Piped Access',
+        x=service_levels_sorted['Region'],
+        y=service_levels_sorted['Piped_Access_Percent'],
+        marker_color='lightblue',
+        text=service_levels_sorted['Piped_Access_Percent'].round(1),
+        textposition='auto',
+    ))
+    
+    # Add target line
+    fig_trend.add_trace(go.Scatter(
+        x=service_levels_sorted['Region'],
+        y=[85] * len(service_levels_sorted),
+        mode='lines',
+        name='HydroTransparent Target (85%)',
+        line=dict(color='red', width=3, dash='dash'),
+        hoverinfo='skip'
+    ))
+    
+    fig_trend.update_layout(
+        title='Water Access by Province vs Target',
+        xaxis_title='Province',
+        yaxis_title='Piped Water Access (%)',
+        xaxis_tickangle=-45,
+        height=500,
+        showlegend=True,
+        yaxis=dict(range=[0, 100])
+    )
+    
+    st.plotly_chart(fig_trend, use_container_width=True)
     
     # Performance Trends
     st.markdown("### 📈 Performance Improvement Trends")
@@ -353,12 +359,9 @@ if st.session_state.data_loaded:
     performance_data = pd.DataFrame({
         'Month': months * 3,
         'Value': 
-            # Infrastructure Transparency (rising trend)
-            [65, 68, 72, 75, 78, 80, 82, 83, 84, 85, 86, 87] +
-            # Financial Irregularities (falling trend)
-            [25, 22, 20, 18, 17, 16, 15, 14, 13, 13, 12, 12] +
-            # Digital Adoption (rising trend)
-            [45, 48, 52, 55, 58, 62, 65, 68, 71, 74, 76, 78],
+            [65, 68, 72, 75, 78, 80, 82, 83, 84, 85, 86, 87] +  # Rising trend
+            [25, 22, 20, 18, 17, 16, 15, 14, 13, 13, 12, 12] +  # Falling trend
+            [45, 48, 52, 55, 58, 62, 65, 68, 71, 74, 76, 78],   # Rising trend
         'Metric': ['Infrastructure Transparency ↗️'] * 12 + ['Financial Irregularities ↘️'] * 12 + ['Digital Adoption ↗️'] * 12
     })
     
@@ -372,43 +375,34 @@ if st.session_state.data_loaded:
         line_shape='spline'
     )
     
-    # Make lines thicker
     for trace in fig_performance.data:
         trace.update(line=dict(width=4))
     
     st.plotly_chart(fig_performance, use_container_width=True)
     
-    # Impact Dashboard
-    st.markdown("### 🛡️ HydroTransparent Impact Dashboard")
-    
-    metrics_data = {
-        "Metric": [
-            "💧 Audited Water Projects",
-            "⚙️ Infrastructure Transparency",
-            "🧾 Financial Irregularities",
-            "🌍 Provincial Coverage",
-            "🔐 Citizen Access",
-            "🛰️ Digital Tracking"
-        ],
-        "Current": [92, 87, 12, 100, 95, 78],
-        "Previous": [85, 79, 18, 85, 88, 65],
-        "Trend_Icon": ["📈", "📈", "📉", "📈", "📈", "📈"],
-        "Trend_Description": ["Steady Rise", "Strong Growth", "Significant Drop", "Complete Coverage", "Rapid Adoption", "Accelerating"]
-    }
-    
-    metrics_df = pd.DataFrame(metrics_data)
-    metrics_df['Change'] = metrics_df['Current'] - metrics_df['Previous']
-    
-    # Display metrics in columns
-    cols = st.columns(3)
-    for i, (_, row) in enumerate(metrics_df.iterrows()):
-        with cols[i % 3]:
-            delta = f"{row['Change']:+.0f}" if row['Metric'] != '🧾 Financial Irregularities' else f"{row['Change']:+.0f}"
-            st.metric(
-                label=f"{row['Metric']} {row['Trend_Icon']}",
-                value=f"{row['Current']}%",
-                delta=delta
-            )
+    # Dams Data Visualization (if available)
+    if dams is not None and not dams.empty:
+        st.markdown("### 🏗️ Dams Distribution Overview")
+        
+        # Try to find latitude/longitude columns
+        lat_cols = [c for c in dams.columns if 'lat' in c.lower() or 'latitude' in c.lower()]
+        lon_cols = [c for c in dams.columns if 'lon' in c.lower() or 'longitude' in c.lower()]
+        
+        if lat_cols and lon_cols:
+            lat_col, lon_col = lat_cols[0], lon_cols[0]
+            dams_sample = dams[[lat_col, lon_col]].dropna().head(100)
+            
+            if not dams_sample.empty:
+                fig_dams = px.scatter_mapbox(
+                    dams_sample,
+                    lat=lat_col,
+                    lon=lon_col,
+                    title="Dams Distribution (Sample)",
+                    zoom=5,
+                    height=400
+                )
+                fig_dams.update_layout(mapbox_style="open-street-map")
+                st.plotly_chart(fig_dams, use_container_width=True)
     
     # Export functionality
     st.markdown("### 💾 Export Report")
@@ -430,7 +424,7 @@ if st.session_state.data_loaded:
         st.success(f"Project report saved to **{fname}**")
     
 else:
-    st.warning("Please ensure all data files are available in the HydroTransparent folder and restart the application.")
+    st.warning("Please ensure all data files are available and restart the application.")
 
 # Footer
 st.markdown("---")
