@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 import json
 from datetime import datetime, timedelta
 import os
+import glob
 
 # Set page configuration
 st.set_page_config(
@@ -43,76 +44,161 @@ st.markdown("---")
 if 'data_loaded' not in st.session_state:
     st.session_state.data_loaded = False
 
-# Data loading function
+# Data loading function with robust file detection
 @st.cache_data
 def load_data():
-    """Load and cache all datasets"""
+    """Load and cache all datasets with flexible file detection"""
     try:
-        # Updated file paths - files are in root directory, not HydroTransparent folder
-        service_levels = pd.read_csv("Water Service Levels - Households_2025_10_08.csv", encoding="ISO-8859-1")
-        esk2033 = pd.read_csv("ESK2033.csv", encoding="ISO-8859-1")
-        wash = pd.read_csv("washdata.csv", encoding="ISO-8859-1")
-        dams = pd.read_csv("globaldamsdatabase_global_coverage_november_2020.csv", encoding="ISO-8859-1")
+        # List all CSV files in current directory
+        csv_files = glob.glob("*.csv")
+        st.info(f"Found CSV files: {csv_files}")
         
-        # Clean service levels data
-        service_levels = service_levels.drop(columns=[c for c in service_levels.columns if "Unnamed" in c], errors="ignore")
-        service_levels.columns = service_levels.columns.str.replace('\xa0', ' ', regex=False).str.strip()
+        # Create a mapping of expected file patterns to actual files
+        file_mapping = {}
         
-        # Process water sources columns
-        water_sources = [
-            'Piped water inside dwelling Households',
-            'Piped water inside yard Households',
-            'Distance Below 200m Households',
-            'Distance greater than 200m Households',
-            'Borehole Households',
-            'Spring Households',
-            'Rain-water tank Households',
-            'Dam/pool/stagnant water Households',
-            'River/stream Households',
-            'Water vendor Households',
-            'Other Water Households'
-        ]
+        for file in csv_files:
+            file_lower = file.lower()
+            if "service level" in file_lower or "household" in file_lower:
+                file_mapping['service_levels'] = file
+            elif "esk2033" in file_lower:
+                file_mapping['esk2033'] = file
+            elif "wash" in file_lower:
+                file_mapping['wash'] = file
+            elif "dam" in file_lower or "global_coverage" in file_lower:
+                file_mapping['dams'] = file
         
-        for col in water_sources + ['Total Households']:
-            if col in service_levels.columns:
-                service_levels[col] = pd.to_numeric(service_levels[col], errors="coerce").fillna(0)
+        st.info(f"File mapping: {file_mapping}")
         
-        # Compute water access percentage
-        service_levels['Piped_Access_Percent'] = (
-            (service_levels['Piped water inside dwelling Households'] +
-             service_levels['Piped water inside yard Households']) /
-            service_levels['Total Households'] * 100
-        ).fillna(0)
+        # Load files with flexible encoding
+        def safe_read_csv(filepath):
+            encodings = ['utf-8', 'ISO-8859-1', 'latin1', 'cp1252']
+            for encoding in encodings:
+                try:
+                    return pd.read_csv(filepath, encoding=encoding, low_memory=False)
+                except UnicodeDecodeError:
+                    continue
+            # If all encodings fail, try without specifying encoding
+            return pd.read_csv(filepath, low_memory=False)
         
-        return service_levels, esk2033, wash, dams, True
+        # Load datasets
+        datasets = {}
+        for key, filename in file_mapping.items():
+            datasets[key] = safe_read_csv(filename)
+        
+        # Process service levels data if available
+        if 'service_levels' in datasets:
+            service_levels = datasets['service_levels']
+            # Clean service levels data
+            service_levels = service_levels.drop(columns=[c for c in service_levels.columns if "Unnamed" in c], errors="ignore")
+            service_levels.columns = service_levels.columns.str.replace('\xa0', ' ', regex=False).str.strip()
+            
+            # Process water sources columns
+            water_sources = [
+                'Piped water inside dwelling Households',
+                'Piped water inside yard Households', 
+                'Distance Below 200m Households',
+                'Distance greater than 200m Households',
+                'Borehole Households',
+                'Spring Households',
+                'Rain-water tank Households',
+                'Dam/pool/stagnant water Households',
+                'River/stream Households',
+                'Water vendor Households',
+                'Other Water Households'
+            ]
+            
+            for col in water_sources + ['Total Households']:
+                if col in service_levels.columns:
+                    service_levels[col] = pd.to_numeric(service_levels[col], errors="coerce").fillna(0)
+            
+            # Compute water access percentage
+            if all(col in service_levels.columns for col in ['Piped water inside dwelling Households', 
+                                                           'Piped water inside yard Households', 
+                                                           'Total Households']):
+                service_levels['Piped_Access_Percent'] = (
+                    (service_levels['Piped water inside dwelling Households'] +
+                     service_levels['Piped water inside yard Households']) /
+                    service_levels['Total Households'] * 100
+                ).fillna(0)
+            else:
+                service_levels['Piped_Access_Percent'] = 0
+            
+            datasets['service_levels'] = service_levels
+        
+        return (datasets.get('service_levels'), 
+                datasets.get('esk2033'), 
+                datasets.get('wash'), 
+                datasets.get('dams'), 
+                True)
         
     except Exception as e:
-        st.error(f"Error loading datasets: {e}")
+        st.error(f"Error loading datasets: {str(e)}")
+        import traceback
+        st.error(f"Detailed error: {traceback.format_exc()}")
         return None, None, None, None, False
+
+# Alternative: Create demo data if real data fails
+def create_demo_data():
+    """Create demo data for testing"""
+    st.warning("Using demo data - real datasets not available")
+    
+    # Create demo service levels data
+    provinces = ["Eastern Cape", "Free State", "Gauteng", "KwaZulu-Natal", "Limpopo", 
+                "Mpumalanga", "North West", "Northern Cape", "Western Cape"]
+    
+    demo_service_levels = pd.DataFrame({
+        'Region': provinces,
+        'Piped water inside dwelling Households': np.random.randint(100000, 500000, 9),
+        'Piped water inside yard Households': np.random.randint(80000, 300000, 9),
+        'Total Households': np.random.randint(500000, 1000000, 9)
+    })
+    
+    demo_service_levels['Piped_Access_Percent'] = (
+        (demo_service_levels['Piped water inside dwelling Households'] +
+         demo_service_levels['Piped water inside yard Households']) /
+        demo_service_levels['Total Households'] * 100
+    ).fillna(0)
+    
+    return demo_service_levels, None, None, None, True
 
 # Load data
 with st.spinner("📊 Loading and processing datasets..."):
-    service_levels, esk2033, wash, dams, success = load_data()
-    
-    if success:
-        st.session_state.data_loaded = True
-        st.success("✅ All datasets loaded successfully")
+    try:
+        service_levels, esk2033, wash, dams, success = load_data()
         
-        # Show dataset info
-        with st.expander("📁 Dataset Information"):
-            col1, col2, col3, col4 = st.columns(4)
-            with col1:
-                st.metric("Service Levels", f"{service_levels.shape[0]} rows")
-            with col2:
-                st.metric("ESK2033", f"{esk2033.shape[0]} rows")
-            with col3:
-                st.metric("WASH Data", f"{wash.shape[0]} rows")
-            with col4:
-                st.metric("Dams Database", f"{dams.shape[0]} rows")
-    else:
-        st.error("❌ Failed to load datasets")
+        if not success:
+            service_levels, esk2033, wash, dams, success = create_demo_data()
+            
+        if success:
+            st.session_state.data_loaded = True
+            st.success("✅ Datasets loaded successfully")
+            
+            # Show dataset info
+            with st.expander("📁 Dataset Information"):
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    rows = service_levels.shape[0] if service_levels is not None else 0
+                    st.metric("Service Levels", f"{rows} rows")
+                with col2:
+                    rows = esk2033.shape[0] if esk2033 is not None else "N/A"
+                    st.metric("ESK2033", f"{rows} rows")
+                with col3:
+                    rows = wash.shape[0] if wash is not None else "N/A"
+                    st.metric("WASH Data", f"{rows} rows")
+                with col4:
+                    rows = dams.shape[0] if dams is not None else "N/A"
+                    st.metric("Dams Database", f"{rows} rows")
+        else:
+            st.error("❌ Failed to load datasets and demo data")
+            
+    except Exception as e:
+        st.error(f"Unexpected error during data loading: {e}")
+        service_levels, esk2033, wash, dams, success = create_demo_data()
+        if success:
+            st.session_state.data_loaded = True
+            st.success("✅ Using demo data for demonstration")
 
-# Mock service classes
+# Mock service classes (same as before)
 class AnalyticsService:
     @staticmethod
     def get_water_stress_prediction(province, rural_area):
@@ -314,42 +400,43 @@ if st.session_state.data_loaded:
     st.plotly_chart(fig_impact, use_container_width=True)
     
     # Water Access Trends from actual data
-    st.markdown("### 💧 Water Access Trends by Province")
-    
-    # Sort by piped access
-    service_levels_sorted = service_levels.sort_values('Piped_Access_Percent', ascending=True)
-    
-    fig_trend = go.Figure()
-    fig_trend.add_trace(go.Bar(
-        name='Current Piped Access',
-        x=service_levels_sorted['Region'],
-        y=service_levels_sorted['Piped_Access_Percent'],
-        marker_color='lightblue',
-        text=service_levels_sorted['Piped_Access_Percent'].round(1),
-        textposition='auto',
-    ))
-    
-    # Add target line
-    fig_trend.add_trace(go.Scatter(
-        x=service_levels_sorted['Region'],
-        y=[85] * len(service_levels_sorted),
-        mode='lines',
-        name='HydroTransparent Target (85%)',
-        line=dict(color='red', width=3, dash='dash'),
-        hoverinfo='skip'
-    ))
-    
-    fig_trend.update_layout(
-        title='Water Access by Province vs Target',
-        xaxis_title='Province',
-        yaxis_title='Piped Water Access (%)',
-        xaxis_tickangle=-45,
-        height=500,
-        showlegend=True,
-        yaxis=dict(range=[0, 100])
-    )
-    
-    st.plotly_chart(fig_trend, use_container_width=True)
+    if service_levels is not None and 'Region' in service_levels.columns:
+        st.markdown("### 💧 Water Access Trends by Province")
+        
+        # Sort by piped access
+        service_levels_sorted = service_levels.sort_values('Piped_Access_Percent', ascending=True)
+        
+        fig_trend = go.Figure()
+        fig_trend.add_trace(go.Bar(
+            name='Current Piped Access',
+            x=service_levels_sorted['Region'],
+            y=service_levels_sorted['Piped_Access_Percent'],
+            marker_color='lightblue',
+            text=service_levels_sorted['Piped_Access_Percent'].round(1),
+            textposition='auto',
+        ))
+        
+        # Add target line
+        fig_trend.add_trace(go.Scatter(
+            x=service_levels_sorted['Region'],
+            y=[85] * len(service_levels_sorted),
+            mode='lines',
+            name='HydroTransparent Target (85%)',
+            line=dict(color='red', width=3, dash='dash'),
+            hoverinfo='skip'
+        ))
+        
+        fig_trend.update_layout(
+            title='Water Access by Province vs Target',
+            xaxis_title='Province',
+            yaxis_title='Piped Water Access (%)',
+            xaxis_tickangle=-45,
+            height=500,
+            showlegend=True,
+            yaxis=dict(range=[0, 100])
+        )
+        
+        st.plotly_chart(fig_trend, use_container_width=True)
     
     # Performance Trends
     st.markdown("### 📈 Performance Improvement Trends")
@@ -379,30 +466,6 @@ if st.session_state.data_loaded:
         trace.update(line=dict(width=4))
     
     st.plotly_chart(fig_performance, use_container_width=True)
-    
-    # Dams Data Visualization (if available)
-    if dams is not None and not dams.empty:
-        st.markdown("### 🏗️ Dams Distribution Overview")
-        
-        # Try to find latitude/longitude columns
-        lat_cols = [c for c in dams.columns if 'lat' in c.lower() or 'latitude' in c.lower()]
-        lon_cols = [c for c in dams.columns if 'lon' in c.lower() or 'longitude' in c.lower()]
-        
-        if lat_cols and lon_cols:
-            lat_col, lon_col = lat_cols[0], lon_cols[0]
-            dams_sample = dams[[lat_col, lon_col]].dropna().head(100)
-            
-            if not dams_sample.empty:
-                fig_dams = px.scatter_mapbox(
-                    dams_sample,
-                    lat=lat_col,
-                    lon=lon_col,
-                    title="Dams Distribution (Sample)",
-                    zoom=5,
-                    height=400
-                )
-                fig_dams.update_layout(mapbox_style="open-street-map")
-                st.plotly_chart(fig_dams, use_container_width=True)
     
     # Export functionality
     st.markdown("### 💾 Export Report")
