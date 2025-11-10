@@ -40,22 +40,103 @@ st.markdown('<div class="main-header">🌊 HYDROTRANSPARENT INSIGHT DASHBOARD</d
 st.markdown("### Real-time Patterns, Trends & Anti-Corruption Impact")
 st.markdown("---")
 
-# Initialize session state for data persistence
+# Province-specific base data
+PROVINCE_BASE_DATA = {
+    "Eastern Cape": {
+        "water_stress": 0.75,
+        "jobs_base": 420,
+        "economic_base": 85,
+        "water_access_base": 85,
+        "coordinates": (-32.0833, 26.8833),
+        "rainfall_factor": 1.2,
+        "flow_factor": 0.9
+    },
+    "Free State": {
+        "water_stress": 0.65,
+        "jobs_base": 380,
+        "economic_base": 75,
+        "water_access_base": 80,
+        "coordinates": (-28.4556, 26.7683),
+        "rainfall_factor": 0.8,
+        "flow_factor": 0.7
+    },
+    "Gauteng": {
+        "water_stress": 0.85,
+        "jobs_base": 500,
+        "economic_base": 100,
+        "water_access_base": 90,
+        "coordinates": (-26.2044, 28.0456),
+        "rainfall_factor": 0.9,
+        "flow_factor": 0.6
+    },
+    "KwaZulu-Natal": {
+        "water_stress": 0.70,
+        "jobs_base": 450,
+        "economic_base": 90,
+        "water_access_base": 85,
+        "coordinates": (-29.8587, 31.0218),
+        "rainfall_factor": 1.4,
+        "flow_factor": 1.2
+    },
+    "Limpopo": {
+        "water_stress": 0.80,
+        "jobs_base": 400,
+        "economic_base": 80,
+        "water_access_base": 80,
+        "coordinates": (-23.4013, 29.4179),
+        "rainfall_factor": 0.7,
+        "flow_factor": 0.5
+    },
+    "Mpumalanga": {
+        "water_stress": 0.72,
+        "jobs_base": 420,
+        "economic_base": 85,
+        "water_access_base": 82,
+        "coordinates": (-25.5653, 30.5279),
+        "rainfall_factor": 1.1,
+        "flow_factor": 1.0
+    },
+    "North West": {
+        "water_stress": 0.68,
+        "jobs_base": 380,
+        "economic_base": 75,
+        "water_access_base": 78,
+        "coordinates": (-26.6639, 25.2838),
+        "rainfall_factor": 0.6,
+        "flow_factor": 0.4
+    },
+    "Northern Cape": {
+        "water_stress": 0.90,
+        "jobs_base": 350,
+        "economic_base": 70,
+        "water_access_base": 75,
+        "coordinates": (-29.0467, 21.8569),
+        "rainfall_factor": 0.4,
+        "flow_factor": 0.3
+    },
+    "Western Cape": {
+        "water_stress": 0.78,
+        "jobs_base": 480,
+        "economic_base": 95,
+        "water_access_base": 88,
+        "coordinates": (-33.9253, 18.4239),
+        "rainfall_factor": 1.0,
+        "flow_factor": 0.8
+    }
+}
+
+# Initialize session state
 if 'data_loaded' not in st.session_state:
     st.session_state.data_loaded = False
 
-# Data loading function with robust file detection
+# Data loading function
 @st.cache_data
 def load_data():
-    """Load and cache all datasets with flexible file detection"""
+    """Load and cache all datasets"""
     try:
-        # List all CSV files in current directory
         csv_files = glob.glob("*.csv")
-        st.info(f"Found CSV files: {csv_files}")
         
-        # Create a mapping of expected file patterns to actual files
         file_mapping = {}
-        
         for file in csv_files:
             file_lower = file.lower()
             if "service level" in file_lower or "household" in file_lower:
@@ -67,9 +148,6 @@ def load_data():
             elif "dam" in file_lower or "global_coverage" in file_lower:
                 file_mapping['dams'] = file
         
-        st.info(f"File mapping: {file_mapping}")
-        
-        # Load files with flexible encoding
         def safe_read_csv(filepath):
             encodings = ['utf-8', 'ISO-8859-1', 'latin1', 'cp1252']
             for encoding in encodings:
@@ -77,41 +155,29 @@ def load_data():
                     return pd.read_csv(filepath, encoding=encoding, low_memory=False)
                 except UnicodeDecodeError:
                     continue
-            # If all encodings fail, try without specifying encoding
             return pd.read_csv(filepath, low_memory=False)
         
-        # Load datasets
         datasets = {}
         for key, filename in file_mapping.items():
             datasets[key] = safe_read_csv(filename)
         
-        # Process service levels data if available
         if 'service_levels' in datasets:
             service_levels = datasets['service_levels']
-            # Clean service levels data
             service_levels = service_levels.drop(columns=[c for c in service_levels.columns if "Unnamed" in c], errors="ignore")
             service_levels.columns = service_levels.columns.str.replace('\xa0', ' ', regex=False).str.strip()
             
-            # Process water sources columns
             water_sources = [
-                'Piped water inside dwelling Households',
-                'Piped water inside yard Households', 
-                'Distance Below 200m Households',
-                'Distance greater than 200m Households',
-                'Borehole Households',
-                'Spring Households',
-                'Rain-water tank Households',
-                'Dam/pool/stagnant water Households',
-                'River/stream Households',
-                'Water vendor Households',
-                'Other Water Households'
+                'Piped water inside dwelling Households', 'Piped water inside yard Households',
+                'Distance Below 200m Households', 'Distance greater than 200m Households',
+                'Borehole Households', 'Spring Households', 'Rain-water tank Households',
+                'Dam/pool/stagnant water Households', 'River/stream Households',
+                'Water vendor Households', 'Other Water Households'
             ]
             
             for col in water_sources + ['Total Households']:
                 if col in service_levels.columns:
                     service_levels[col] = pd.to_numeric(service_levels[col], errors="coerce").fillna(0)
             
-            # Compute water access percentage
             if all(col in service_levels.columns for col in ['Piped water inside dwelling Households', 
                                                            'Piped water inside yard Households', 
                                                            'Total Households']):
@@ -133,24 +199,17 @@ def load_data():
         
     except Exception as e:
         st.error(f"Error loading datasets: {str(e)}")
-        import traceback
-        st.error(f"Detailed error: {traceback.format_exc()}")
         return None, None, None, None, False
 
-# Alternative: Create demo data if real data fails
 def create_demo_data():
     """Create demo data for testing"""
-    st.warning("Using demo data - real datasets not available")
-    
-    # Create demo service levels data
-    provinces = ["Eastern Cape", "Free State", "Gauteng", "KwaZulu-Natal", "Limpopo", 
-                "Mpumalanga", "North West", "Northern Cape", "Western Cape"]
+    provinces = list(PROVINCE_BASE_DATA.keys())
     
     demo_service_levels = pd.DataFrame({
         'Region': provinces,
-        'Piped water inside dwelling Households': np.random.randint(100000, 500000, 9),
-        'Piped water inside yard Households': np.random.randint(80000, 300000, 9),
-        'Total Households': np.random.randint(500000, 1000000, 9)
+        'Piped water inside dwelling Households': [int(PROVINCE_BASE_DATA[p]['water_access_base'] * 5000) for p in provinces],
+        'Piped water inside yard Households': [int(PROVINCE_BASE_DATA[p]['water_access_base'] * 3000) for p in provinces],
+        'Total Households': [100000] * len(provinces)
     })
     
     demo_service_levels['Piped_Access_Percent'] = (
@@ -172,91 +231,75 @@ with st.spinner("📊 Loading and processing datasets..."):
         if success:
             st.session_state.data_loaded = True
             st.success("✅ Datasets loaded successfully")
-            
-            # Show dataset info
-            with st.expander("📁 Dataset Information"):
-                col1, col2, col3, col4 = st.columns(4)
-                with col1:
-                    rows = service_levels.shape[0] if service_levels is not None else 0
-                    st.metric("Service Levels", f"{rows} rows")
-                with col2:
-                    rows = esk2033.shape[0] if esk2033 is not None else "N/A"
-                    st.metric("ESK2033", f"{rows} rows")
-                with col3:
-                    rows = wash.shape[0] if wash is not None else "N/A"
-                    st.metric("WASH Data", f"{rows} rows")
-                with col4:
-                    rows = dams.shape[0] if dams is not None else "N/A"
-                    st.metric("Dams Database", f"{rows} rows")
-        else:
-            st.error("❌ Failed to load datasets and demo data")
-            
     except Exception as e:
-        st.error(f"Unexpected error during data loading: {e}")
         service_levels, esk2033, wash, dams, success = create_demo_data()
         if success:
             st.session_state.data_loaded = True
             st.success("✅ Using demo data for demonstration")
 
-# Mock service classes (same as before)
+# Updated service classes with province-specific data
 class AnalyticsService:
     @staticmethod
     def get_water_stress_prediction(province, rural_area):
+        base_data = PROVINCE_BASE_DATA.get(province, PROVINCE_BASE_DATA["Gauteng"])
+        
+        # Use province-specific base values with some variation
+        base_stress = base_data["water_stress"]
         predictions = {
-            "water_stress_level": float(max(0.6, min(0.95, 0.7 + np.random.normal(0, 0.1)))),
-            "infrastructure_risk": float(max(0.3, min(0.9, 0.5 + np.random.normal(0, 0.1)))),
-            "conservation_potential": float(max(0.4, min(0.95, 0.65 + np.random.normal(0, 0.1)))),
-            "rainfall_variability": float(max(0.2, min(0.9, 0.45 + np.random.normal(0, 0.1)))),
-            "drought_probability": float(max(0.05, min(0.85, 0.35 + np.random.normal(0, 0.1))))
+            "water_stress_level": float(max(0.3, min(0.95, base_stress + np.random.normal(0, 0.05)))),
+            "infrastructure_risk": float(max(0.2, min(0.9, 0.5 + np.random.normal(0, 0.1)))),
+            "conservation_potential": float(max(0.4, min(0.95, 0.7 - base_stress * 0.3 + np.random.normal(0, 0.1)))),
+            "rainfall_variability": float(max(0.1, min(0.8, (1 - base_data["rainfall_factor"]) + np.random.normal(0, 0.1)))),
+            "drought_probability": float(max(0.05, min(0.85, base_stress * 0.8 + np.random.normal(0, 0.1))))
         }
+        
         insights = [
-            f"Predicted water stress in {rural_area}: {predictions['water_stress_level']:.1%}",
-            f"Suggested resilience investment ~ ZAR {75 + np.random.randint(10,40)}M",
+            f"Predicted water stress in {rural_area}, {province}: {predictions['water_stress_level']:.1%}",
+            f"Suggested resilience investment ~ ZAR {int(50 + base_stress * 100)}M",
             f"Conservation potential: {predictions['conservation_potential']:.1%}",
-            f"Drought probability (36m): {predictions['drought_probability']:.1%}"
+            f"Drought probability (36m): {predictions['drought_probability']:.1%}",
+            f"Regional rainfall factor: {base_data['rainfall_factor']:.1f}x national average"
         ]
+        
         return predictions, insights
 
 class ImpactTargets:
     @staticmethod
     def get_impact_targets(province, rural_area, project_scale):
-        base_targets = {
-            "Eastern Cape": {"jobs_target": 420, "economic_impact_target": 85, "water_access_target": 85},
-            "Free State": {"jobs_target": 380, "economic_impact_target": 75, "water_access_target": 80},
-            "Gauteng": {"jobs_target": 500, "economic_impact_target": 100, "water_access_target": 90},
-            "KwaZulu-Natal": {"jobs_target": 450, "economic_impact_target": 90, "water_access_target": 85},
-            "Limpopo": {"jobs_target": 400, "economic_impact_target": 80, "water_access_target": 80},
-            "Mpumalanga": {"jobs_target": 420, "economic_impact_target": 85, "water_access_target": 82},
-            "North West": {"jobs_target": 380, "economic_impact_target": 75, "water_access_target": 78},
-            "Northern Cape": {"jobs_target": 350, "economic_impact_target": 70, "water_access_target": 75},
-            "Western Cape": {"jobs_target": 480, "economic_impact_target": 95, "water_access_target": 88}
-        }
+        base_data = PROVINCE_BASE_DATA.get(province, PROVINCE_BASE_DATA["Gauteng"])
         
         scale_multipliers = {"Small": 0.6, "Medium": 0.8, "Large": 1.0, "Enterprise": 1.2}
-        province_targets = base_targets.get(province, {"jobs_target": 400, "economic_impact_target": 80, "water_access_target": 80})
         multiplier = scale_multipliers.get(project_scale, 1.0)
         
         targets = {
-            "jobs_target": int(province_targets["jobs_target"] * multiplier),
-            "economic_impact_target": int(province_targets["economic_impact_target"] * multiplier),
-            "water_access_target": province_targets["water_access_target"]
+            "jobs_target": int(base_data["jobs_base"] * multiplier),
+            "economic_impact_target": int(base_data["economic_base"] * multiplier),
+            "water_access_target": base_data["water_access_base"]
         }
         
+        # Province-specific progress based on base characteristics
+        progress_factor = 0.3 + (base_data["water_access_base"] / 100) * 0.4
+        
         current_progress = {
-            "jobs_current": int(targets["jobs_target"] * (0.3 + np.random.random() * 0.4)),
-            "economic_current": int(targets["economic_impact_target"] * (0.25 + np.random.random() * 0.5)),
-            "water_access_current": 42 + np.random.randint(5, 25)
+            "jobs_current": int(targets["jobs_target"] * progress_factor),
+            "economic_current": int(targets["economic_impact_target"] * (progress_factor - 0.1)),
+            "water_access_current": int(base_data["water_access_base"] * (0.4 + np.random.random() * 0.3))
         }
         
         return targets, current_progress
 
 class HydrologicalModel:
     @staticmethod
-    def simulate_water_flow(catchment_area, rainfall, evaporation, soil_type):
+    def simulate_water_flow(catchment_area, rainfall, evaporation, soil_type, province):
+        base_data = PROVINCE_BASE_DATA.get(province, PROVINCE_BASE_DATA["Gauteng"])
+        
         runoff_coefficients = {"clay": 0.75, "sandy": 0.35, "loamy": 0.55, "rocky": 0.85}
         runoff_coeff = runoff_coefficients.get(soil_type.lower(), 0.6)
-        effective_rainfall = max(0, rainfall - evaporation)
-        peak_flow = (runoff_coeff * effective_rainfall * catchment_area) / 3.6
+        
+        # Adjust rainfall by province factor
+        adjusted_rainfall = rainfall * base_data["rainfall_factor"]
+        effective_rainfall = max(0, adjusted_rainfall - evaporation)
+        peak_flow = (runoff_coeff * effective_rainfall * catchment_area * base_data["flow_factor"]) / 3.6
         
         time_steps = 24
         base_flow = peak_flow * 0.1
@@ -275,16 +318,23 @@ class HydrologicalModel:
 class IoTDataService:
     @staticmethod
     def get_sensor_data(province, rural_area):
+        base_data = PROVINCE_BASE_DATA.get(province, PROVINCE_BASE_DATA["Gauteng"])
+        
         now = datetime.now()
+        
+        # Province-specific sensor readings
+        base_water_level = 50 + (base_data["water_stress"] * 30)  # Higher stress = higher levels needed
+        base_flow = 8 + (base_data["flow_factor"] * 8)  # Higher flow factor = higher flow rates
+        
         sensor = {
-            "water_level": float(64.5 + np.random.normal(0, 2)),
-            "water_quality": float(7.2 + np.random.normal(0, 0.1)),
-            "turbidity": float(4.1 + np.random.normal(0, 0.5)),
+            "water_level": float(base_water_level + np.random.normal(0, 2)),
+            "water_quality": float(7.0 + (1 - base_data["water_stress"]) * 0.5 + np.random.normal(0, 0.1)),
+            "turbidity": float(3.0 + base_data["water_stress"] * 2 + np.random.normal(0, 0.5)),
             "temperature": float(18.5 + np.random.normal(0, 1)),
-            "flow_rate": float(12.3 + np.random.normal(0, 0.5)),
+            "flow_rate": float(base_flow + np.random.normal(0, 0.5)),
             "last_updated": now,
             "sensor_status": "Online",
-            "battery_level": int(87 + np.random.randint(-5, 5))
+            "battery_level": int(80 + np.random.randint(-10, 10))
         }
         
         hours = [(now - timedelta(hours=i)).strftime("%Y-%m-%d %H:%M") for i in range(24, 0, -1)]
@@ -299,11 +349,7 @@ class IoTDataService:
 # Sidebar for controls
 st.sidebar.markdown("## 🎛️ Enterprise Controls")
 
-# Province selection
-PROVINCES = [
-    "Eastern Cape", "Free State", "Gauteng", "KwaZulu-Natal", "Limpopo",
-    "Mpumalanga", "North West", "Northern Cape", "Western Cape"
-]
+PROVINCES = list(PROVINCE_BASE_DATA.keys())
 
 rural_map = {
     "Eastern Cape": ["Alice", "Butterworth", "Cradock", "Graaff-Reinet", "Lady Frere"],
@@ -332,7 +378,7 @@ if st.session_state.data_loaded:
     # Executive Summary
     st.markdown(f"## 📍 Enterprise Executive Summary — **{rural_area}, {province}**")
     
-    # Get predictions and targets
+    # Get province-specific predictions and targets
     targets, current_progress = ImpactTargets.get_impact_targets(province, rural_area, project_scale)
     predictions, insights = AnalyticsService.get_water_stress_prediction(province, rural_area)
     sensor, hist = IoTDataService.get_sensor_data(province, rural_area)
@@ -372,15 +418,15 @@ if st.session_state.data_loaded:
     with iot_col4:
         st.metric("Sensor Status", sensor['sensor_status'], f"Battery: {sensor['battery_level']}%")
     
-    # Hydrological Simulation
+    # Hydrological Simulation - Now province-specific
     st.markdown("### 🌊 Hydrological Simulation")
-    flow_df, peak_flow = HydrologicalModel.simulate_water_flow(catchment_area, rainfall, evaporation, soil_type)
+    flow_df, peak_flow = HydrologicalModel.simulate_water_flow(catchment_area, rainfall, evaporation, soil_type, province)
     
     col1, col2 = st.columns([2, 1])
     
     with col1:
         fig_flow = px.line(flow_df, x='hour', y='flow_rate', color='stage', 
-                          title=f'Simulated Daily Flow - Peak: {peak_flow:.2f} m³/s')
+                          title=f'Simulated Daily Flow - {province} - Peak: {peak_flow:.2f} m³/s')
         st.plotly_chart(fig_flow, use_container_width=True)
     
     with col2:
@@ -396,14 +442,60 @@ if st.session_state.data_loaded:
     })
     
     fig_impact = px.bar(impact_df, x='Metric', y=['Target', 'Current'], 
-                       barmode='group', title="Target vs Current Impact")
+                       barmode='group', title=f"Target vs Current Impact - {province}")
     st.plotly_chart(fig_impact, use_container_width=True)
     
-    # Water Access Trends from actual data
+    # Geospatial Map
+    st.markdown("### 🗺️ Geospatial Analysis")
+    
+    # Create province coordinates dataframe
+    province_coords = []
+    for prov, data in PROVINCE_BASE_DATA.items():
+        province_coords.append({
+            'Province': prov,
+            'Latitude': data['coordinates'][0],
+            'Longitude': data['coordinates'][1],
+            'Water_Stress': data['water_stress'],
+            'Water_Access': data['water_access_base'],
+            'Current_Selection': prov == province
+        })
+    
+    map_df = pd.DataFrame(province_coords)
+    
+    # Create the map
+    fig_map = px.scatter_mapbox(
+        map_df,
+        lat="Latitude",
+        lon="Longitude",
+        color="Water_Stress",
+        size="Water_Access",
+        hover_name="Province",
+        hover_data={"Water_Stress": ":.2f", "Water_Access": True},
+        color_continuous_scale="Viridis",
+        size_max=15,
+        zoom=5,
+        height=400,
+        title=f"Water Stress and Access by Province - Selected: {province}"
+    )
+    
+    # Highlight selected province
+    selected_province = map_df[map_df['Province'] == province]
+    if not selected_province.empty:
+        fig_map.add_trace(px.scatter_mapbox(
+            selected_province,
+            lat="Latitude",
+            lon="Longitude",
+            color_discrete_sequence=["red"]
+        ).data[0])
+    
+    fig_map.update_layout(mapbox_style="open-street-map")
+    fig_map.update_layout(margin={"r":0,"t":30,"l":0,"b":0})
+    st.plotly_chart(fig_map, use_container_width=True)
+    
+    # Water Access Trends
     if service_levels is not None and 'Region' in service_levels.columns:
         st.markdown("### 💧 Water Access Trends by Province")
         
-        # Sort by piped access
         service_levels_sorted = service_levels.sort_values('Piped_Access_Percent', ascending=True)
         
         fig_trend = go.Figure()
@@ -416,7 +508,17 @@ if st.session_state.data_loaded:
             textposition='auto',
         ))
         
-        # Add target line
+        # Highlight current province
+        if province in service_levels_sorted['Region'].values:
+            province_value = service_levels_sorted[service_levels_sorted['Region'] == province]['Piped_Access_Percent'].iloc[0]
+            fig_trend.add_trace(go.Scatter(
+                x=[province],
+                y=[province_value],
+                mode='markers',
+                marker=dict(size=15, color='red', symbol='star'),
+                name=f'Selected: {province}'
+            ))
+        
         fig_trend.add_trace(go.Scatter(
             x=service_levels_sorted['Region'],
             y=[85] * len(service_levels_sorted),
@@ -427,7 +529,7 @@ if st.session_state.data_loaded:
         ))
         
         fig_trend.update_layout(
-            title='Water Access by Province vs Target',
+            title=f'Water Access by Province - Selected: {province}',
             xaxis_title='Province',
             yaxis_title='Piped Water Access (%)',
             xaxis_tickangle=-45,
@@ -438,34 +540,32 @@ if st.session_state.data_loaded:
         
         st.plotly_chart(fig_trend, use_container_width=True)
     
-    # Performance Trends
-    st.markdown("### 📈 Performance Improvement Trends")
+    # Province Comparison
+    st.markdown("### 📈 Province Comparison")
     
-    # Create performance data
-    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    performance_data = pd.DataFrame({
-        'Month': months * 3,
-        'Value': 
-            [65, 68, 72, 75, 78, 80, 82, 83, 84, 85, 86, 87] +  # Rising trend
-            [25, 22, 20, 18, 17, 16, 15, 14, 13, 13, 12, 12] +  # Falling trend
-            [45, 48, 52, 55, 58, 62, 65, 68, 71, 74, 76, 78],   # Rising trend
-        'Metric': ['Infrastructure Transparency ↗️'] * 12 + ['Financial Irregularities ↘️'] * 12 + ['Digital Adoption ↗️'] * 12
-    })
+    comparison_data = []
+    for prov, data in PROVINCE_BASE_DATA.items():
+        comparison_data.append({
+            'Province': prov,
+            'Water Stress': data['water_stress'] * 100,
+            'Base Water Access': data['water_access_base'],
+            'Rainfall Factor': data['rainfall_factor'],
+            'Flow Factor': data['flow_factor'],
+            'Is Selected': prov == province
+        })
     
-    fig_performance = px.line(
-        performance_data,
-        x='Month',
-        y='Value',
-        color='Metric',
-        title='Monthly Improvement Tracking',
-        markers=True,
-        line_shape='spline'
+    comp_df = pd.DataFrame(comparison_data)
+    
+    fig_comp = px.bar(
+        comp_df,
+        x='Province',
+        y=['Water Stress', 'Base Water Access'],
+        barmode='group',
+        title='Province Comparison: Water Stress vs Access',
+        color_discrete_map={'Water Stress': 'red', 'Base Water Access': 'blue'}
     )
     
-    for trace in fig_performance.data:
-        trace.update(line=dict(width=4))
-    
-    st.plotly_chart(fig_performance, use_container_width=True)
+    st.plotly_chart(fig_comp, use_container_width=True)
     
     # Export functionality
     st.markdown("### 💾 Export Report")
@@ -477,6 +577,7 @@ if st.session_state.data_loaded:
             "current_progress": current_progress,
             "iot_snapshot": sensor,
             "peak_flow": float(peak_flow),
+            "water_stress": predictions['water_stress_level'],
             "generated_at": datetime.now().isoformat()
         }
         
