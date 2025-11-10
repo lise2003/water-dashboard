@@ -258,7 +258,23 @@ with st.spinner("📊 Loading and processing datasets..."):
     except Exception as e:
         st.session_state.data_loaded = False
 
-# Handle map clicks using forms
+# Handle province selection buttons (outside forms)
+for province_name in PROVINCE_BASE_DATA.keys():
+    if f"btn_{province_name}" in st.session_state and st.session_state[f"btn_{province_name}"]:
+        st.session_state.selected_province = province_name
+        st.session_state.map_clicked_province = province_name
+        st.rerun()
+
+# Handle rural area selection buttons (outside forms)
+if st.session_state.selected_province:
+    rural_areas = list(RURAL_AREA_COORDINATES[st.session_state.selected_province].keys())
+    for rural_name in rural_areas:
+        if f"rural_btn_{rural_name}" in st.session_state and st.session_state[f"rural_btn_{rural_name}"]:
+            st.session_state.selected_rural_area = rural_name
+            st.session_state.map_clicked_rural = rural_name
+            st.rerun()
+
+# STEP 1: PROVINCE SELECTION
 if st.session_state.current_step == 1:
     with st.form("province_selection_form"):
         st.markdown('<div class="selection-card">', unsafe_allow_html=True)
@@ -357,15 +373,15 @@ if st.session_state.current_step == 1:
         
         for i, province_name in enumerate(PROVINCE_BASE_DATA.keys()):
             with cols[i % 3]:
+                # Store button state in session state
                 if st.button(f"📍 {province_name}", key=f"btn_{province_name}", use_container_width=True):
-                    st.session_state.selected_province = province_name
-                    st.session_state.map_clicked_province = province_name
-                    st.rerun()
+                    pass  # The actual handling is done outside the form
         
         # Form submit button
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
-            if st.form_submit_button("✅ Confirm Province Selection", type="primary", use_container_width=True):
+            submitted = st.form_submit_button("✅ Confirm Province Selection", type="primary", use_container_width=True)
+            if submitted:
                 st.session_state.selected_province = selected_province
                 st.session_state.current_step = 2
                 st.rerun()
@@ -476,19 +492,20 @@ elif st.session_state.current_step == 2 and st.session_state.selected_province:
         rural_cols = st.columns(3)
         for i, rural_name in enumerate(rural_areas):
             with rural_cols[i % 3]:
+                # Store button state in session state
                 if st.button(f"🏘️ {rural_name}", key=f"rural_btn_{rural_name}", use_container_width=True):
-                    st.session_state.selected_rural_area = rural_name
-                    st.session_state.map_clicked_rural = rural_name
-                    st.rerun()
+                    pass  # The actual handling is done outside the form
         
         # Form submit buttons
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
-            if st.form_submit_button("← Back to Provinces", use_container_width=True):
+            back_submitted = st.form_submit_button("← Back to Provinces", use_container_width=True)
+            if back_submitted:
                 st.session_state.current_step = 1
                 st.rerun()
         with col_btn2:
-            if st.form_submit_button("✅ View Dashboard", type="primary", use_container_width=True):
+            confirm_submitted = st.form_submit_button("✅ View Dashboard", type="primary", use_container_width=True)
+            if confirm_submitted:
                 st.session_state.selected_rural_area = selected_rural_area
                 st.session_state.current_step = 3
                 st.rerun()
