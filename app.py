@@ -258,30 +258,32 @@ with st.spinner("📊 Loading and processing datasets..."):
     except Exception as e:
         st.session_state.data_loaded = False
 
-# Handle province selection buttons (outside forms)
-for province_name in PROVINCE_BASE_DATA.keys():
-    if f"btn_{province_name}" in st.session_state and st.session_state[f"btn_{province_name}"]:
-        st.session_state.selected_province = province_name
-        st.session_state.map_clicked_province = province_name
-        st.rerun()
+# Handle button clicks before any forms
+if 'province_clicked' not in st.session_state:
+    st.session_state.province_clicked = None
 
-# Handle rural area selection buttons (outside forms)
-if st.session_state.selected_province:
-    rural_areas = list(RURAL_AREA_COORDINATES[st.session_state.selected_province].keys())
-    for rural_name in rural_areas:
-        if f"rural_btn_{rural_name}" in st.session_state and st.session_state[f"rural_btn_{rural_name}"]:
-            st.session_state.selected_rural_area = rural_name
-            st.session_state.map_clicked_rural = rural_name
-            st.rerun()
+if 'rural_clicked' not in st.session_state:
+    st.session_state.rural_clicked = None
 
 # STEP 1: PROVINCE SELECTION
 if st.session_state.current_step == 1:
+    st.markdown('<div class="selection-card">', unsafe_allow_html=True)
+    st.markdown('<div class="step-indicator">Step 1: Select Province</div>', unsafe_allow_html=True)
+    st.markdown("### 🗺️ Choose Your Province")
+    st.markdown("Click on any province on the map below to select it, or use the dropdown menu.")
+    
+    # Quick selection buttons (OUTSIDE the form)
+    st.markdown("### 🖱️ Quick Select - Click a Province:")
+    cols = st.columns(3)
+    for i, province_name in enumerate(PROVINCE_BASE_DATA.keys()):
+        with cols[i % 3]:
+            if st.button(f"📍 {province_name}", key=f"btn_{province_name}", use_container_width=True):
+                st.session_state.selected_province = province_name
+                st.session_state.province_clicked = province_name
+                st.rerun()
+    
+    # Main form for province selection
     with st.form("province_selection_form"):
-        st.markdown('<div class="selection-card">', unsafe_allow_html=True)
-        st.markdown('<div class="step-indicator">Step 1: Select Province</div>', unsafe_allow_html=True)
-        st.markdown("### 🗺️ Choose Your Province")
-        st.markdown("Click on any province on the map below to select it, or use the dropdown menu.")
-        
         col1, col2 = st.columns([1, 1])
         
         with col1:
@@ -366,17 +368,6 @@ if st.session_state.current_step == 1:
         
         st.plotly_chart(fig_map, use_container_width=True)
         
-        # Map click buttons for each province
-        st.markdown("### 🖱️ Quick Select - Click a Province:")
-        cols = st.columns(3)
-        province_buttons = {}
-        
-        for i, province_name in enumerate(PROVINCE_BASE_DATA.keys()):
-            with cols[i % 3]:
-                # Store button state in session state
-                if st.button(f"📍 {province_name}", key=f"btn_{province_name}", use_container_width=True):
-                    pass  # The actual handling is done outside the form
-        
         # Form submit button
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
@@ -385,22 +376,34 @@ if st.session_state.current_step == 1:
                 st.session_state.selected_province = selected_province
                 st.session_state.current_step = 2
                 st.rerun()
-        
-        st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # STEP 2: RURAL AREA SELECTION
 elif st.session_state.current_step == 2 and st.session_state.selected_province:
+    st.markdown('<div class="selection-card">', unsafe_allow_html=True)
+    st.markdown('<div class="step-indicator">Step 2: Select Rural Area</div>', unsafe_allow_html=True)
+    st.markdown(f"### 🏞️ Choose Rural Area in {st.session_state.selected_province}")
+    st.markdown("Select a specific rural area for detailed analysis.")
+    
+    rural_areas = list(RURAL_AREA_COORDINATES[st.session_state.selected_province].keys())
+    
+    # Quick selection buttons for rural areas (OUTSIDE the form)
+    st.markdown("### 🖱️ Quick Select - Click a Rural Area:")
+    rural_cols = st.columns(3)
+    for i, rural_name in enumerate(rural_areas):
+        with rural_cols[i % 3]:
+            if st.button(f"🏘️ {rural_name}", key=f"rural_btn_{rural_name}", use_container_width=True):
+                st.session_state.selected_rural_area = rural_name
+                st.session_state.rural_clicked = rural_name
+                st.rerun()
+    
+    # Main form for rural area selection
     with st.form("rural_area_selection_form"):
-        st.markdown('<div class="selection-card">', unsafe_allow_html=True)
-        st.markdown('<div class="step-indicator">Step 2: Select Rural Area</div>', unsafe_allow_html=True)
-        st.markdown(f"### 🏞️ Choose Rural Area in {st.session_state.selected_province}")
-        st.markdown("Select a specific rural area for detailed analysis.")
-        
         col1, col2 = st.columns([1, 1])
         
         with col1:
             st.markdown("#### 📋 Select from List")
-            rural_areas = list(RURAL_AREA_COORDINATES[st.session_state.selected_province].keys())
             
             # Set default rural area if none selected
             default_rural = st.session_state.selected_rural_area or rural_areas[0]
@@ -487,15 +490,6 @@ elif st.session_state.current_step == 2 and st.session_state.selected_province:
         
         st.plotly_chart(fig_rural_map, use_container_width=True)
         
-        # Quick select buttons for rural areas
-        st.markdown("### 🖱️ Quick Select - Click a Rural Area:")
-        rural_cols = st.columns(3)
-        for i, rural_name in enumerate(rural_areas):
-            with rural_cols[i % 3]:
-                # Store button state in session state
-                if st.button(f"🏘️ {rural_name}", key=f"rural_btn_{rural_name}", use_container_width=True):
-                    pass  # The actual handling is done outside the form
-        
         # Form submit buttons
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
@@ -509,8 +503,8 @@ elif st.session_state.current_step == 2 and st.session_state.selected_province:
                 st.session_state.selected_rural_area = selected_rural_area
                 st.session_state.current_step = 3
                 st.rerun()
-        
-        st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # STEP 3: MAIN DASHBOARD
 elif st.session_state.current_step == 3 and st.session_state.selected_province and st.session_state.selected_rural_area:
